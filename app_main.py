@@ -11,7 +11,7 @@ from pathlib import Path
 from datetime import datetime
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QToggle, QTableWidget, QTableWidgetItem,
+    QLabel, QPushButton, QTableWidget, QTableWidgetItem,
     QStatusBar, QSystemTrayIcon, QMenu, QTabWidget, QFormLayout,
     QSpinBox, QCheckBox, QComboBox, QMessageBox, QDialog
 )
