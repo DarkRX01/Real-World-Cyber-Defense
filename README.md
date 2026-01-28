@@ -1,265 +1,518 @@
-# Real-World Cyber Defense Chrome Extension
+# 🛡️ Real-World Cyber Defense - Desktop Application
 
-> **Protect your browsing. Stay safe online. Completely FREE.**
+> **The ultimate security tool for your Windows and Linux PC**  
+> Protect against phishing, trackers, malware, and vulnerabilities.  
+> **Completely FREE. Open Source. Always Local.**
 
-![Status](https://img.shields.io/badge/status-active-brightgreen)
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Status](https://img.shields.io/badge/status-production-brightgreen)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Chrome](https://img.shields.io/badge/Chrome-v88+-brightgreen)
+![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
+![OS](https://img.shields.io/badge/OS-Windows%2FLinux-brightgreen)
 
 ---
 
-## 🎯 What Does It Do?
+## 🎯 What Is It?
 
-This extension protects you while you browse:
+**Cyber Defense** is a lightweight desktop application that protects your entire computer from digital threats:
 
-✅ **Real-time threat detection** - Warns you about dangerous websites
-✅ **Privacy tracker blocking** - Stops companies from tracking you
-✅ **Download protection** - Checks files before they download
-✅ **Simple to use** - Just install and forget
-✅ **Completely free** - No ads, no subscriptions, no catches
+✅ **Real-time threat detection** - Monitors URLs and files  
+✅ **Phishing protection** - Blocks deceptive websites  
+✅ **Privacy tracker blocking** - Stops behavioral tracking  
+✅ **Download protection** - Scans files for malware  
+✅ **System vulnerability detection** - Finds weak security settings  
+✅ **Completely free** - Open source, no subscriptions  
+✅ **Private by default** - All scanning happens locally  
+✅ **Works on Windows & Linux** - Unified protection  
 
 ---
 
-## 🚀 Quick Start (Choose Your Path)
+## ⚡ Quick Start (30 Seconds)
 
-### ⚡ EASIEST: Use Installers
+### Choose Your Operating System:
 
-📖 **[→ Open Full Installation Guide](./INSTALLER-GUIDE.md)**
+#### 🪟 Windows
+```bash
+# 1. Download installer
+download install-windows.bat
 
-We made 3 super easy ways to install:
+# 2. Double-click it
+install-windows.bat
 
-- **Windows?** → Use `setup.bat` (double-click!)
-- **Linux?** → Use `setup.sh` (one command!)
-- **Any OS?** → Follow manual steps (detailed guide)
-
-### 🔧 Manual Installation (5 Minutes)
-
-1. **Download** from [Releases](https://github.com/DarkRX01/Real-World-Cyber-Defense/releases)
-2. **Extract** the zip file
-3. **Open Chrome**: Go to `chrome://extensions/`
-4. **Enable Developer Mode** (toggle, top-right)
-5. **Click "Load unpacked"** and select the folder
-6. ✅ **Done!** Extension is active!
-
-### 🔑 (Optional) Add Your API Key for Better Threat Detection
-
-If you want Google Safe Browsing threat detection:
-
-```
-1. Go to https://console.cloud.google.com/
-2. Create a NEW project (free account, no credit card needed)
-3. Search "Safe Browsing API" and enable it
-4. Create an API key
-5. Click extension icon → Settings ⚙️
-6. Paste the key
-✅ Full threat detection enabled!
+# 3. Done! Look for "Cyber Defense" shortcut on Desktop
 ```
 
-**That's it!** You're protected. 🛡️
+#### 🐧 Linux (Ubuntu/Debian/Fedora)
+```bash
+# 1. Download installer
+wget https://github.com/DarkRX01/Real-World-Cyber-Defense/raw/main/install-linux.sh
+chmod +x install-linux.sh
+
+# 2. Run it
+./install-linux.sh
+
+# 3. Done! Launch: cyber-defense
+```
+
+**Installation takes 2-3 minutes.** Includes automatic Python setup.
 
 ---
 
-## ✨ Features Explained
+## 🚀 Features
 
-### 🔍 Real-Time URL Scanning
-- Checks every website you visit
-- Warns you if the site is known to have malware or phishing
-- You decide what to do (visit anyway or go back)
+### 🔗 Real-Time URL Scanning
+Automatically analyzes every URL you visit:
+- **Phishing detection** - Identifies fake login pages
+- **Domain reputation** - Checks if site is known threat
+- **Pattern analysis** - Detects suspicious URL tricks
+- **Clipboard monitoring** - Scans URLs you copy automatically
 
-### 🛡️ Privacy Tracker Detection
-Stops these trackers from following you:
+**Protected against:**
+- `paypa1.com` (fake PayPal)
+- `amaz0n.com` (fake Amazon)
+- IP-based phishing attacks
+- Lookalike domains
+
+### 🎣 Advanced Phishing Detection
+Machine learning-powered analysis:
+- **Keyword detection** - Finds urgent/verify language
+- **Homograph attack prevention** - Blocks confusing lookalike domains
+- **TLD analysis** - Flags suspicious extensions (.xyz, .tk, etc.)
+- **HTTPS verification** - Warns about insecure sites
+- **Confidence scoring** - Shows threat probability (0-100%)
+
+### 🚫 Tracker Blocking
+Stop companies from tracking your behavior:
+- **25+ known trackers** - Google Analytics, Facebook Pixel, etc.
+- **Real-time blocking** - Prevents tracking pixels from loading
+- **Auto-detection** - Identifies new tracking services
+- **Detailed logging** - See what trackers were blocked
+
+### 📥 Download Protection
+Scans files before they harm your computer:
+- **Executable detection** - Flags suspicious .exe, .dll files
+- **File hash analysis** - Matches against malware database
+- **VirusTotal integration** - Optional cloud scanning
+- **Size warnings** - Alerts on unusually large files
+
+### 💻 System Security Checks
+Identifies vulnerabilities:
+- **Firewall status** - Ensures Windows Firewall is active
+- **Antivirus status** - Checks if Windows Defender is enabled
+- **Permission analysis** - Finds insecure file permissions
+- **Update checking** - Recommends security patches
+
+### ⚙️ Highly Customizable
+Adjust for your needs:
+- **4 sensitivity levels** (Low/Medium/High/Extreme)
+- **Feature toggles** - Enable/disable protection types
+- **Background service** - Optional silent monitoring
+- **Auto-start option** - Launch on boot
+- **Custom notifications** - Real-time threat alerts
+- **Optional API keys** - Enhanced detection with external services
+
+---
+
+## 📊 Dashboard Overview
+
+```
+┌────────────────────────────────────────────┐
+│  🛡️  CYBER DEFENSE DASHBOARD               │
+├────────────────────────────────────────────┤
+│                                            │
+│  Statistics:                               │
+│  🔴 Threats Detected: 42                   │
+│  🚫 Trackers Blocked: 156                  │
+│  🎣 Phishing Blocked: 8                    │
+│                                            │
+│  Status: 🔒 Monitoring Active              │
+│                                            │
+│  Tabs:                                     │
+│  [📊 Dashboard] [🔴 Threats] [🔧 Tools]   │
+│                                            │
+│  Controls:                                 │
+│  [⏸️ Pause] [⚙️ Settings] [❌ Close]      │
+│                                            │
+└────────────────────────────────────────────┘
+```
+
+---
+
+## 🎯 How It Works
+
+### 1. Continuous Protection
+```
+Background Monitoring
+    ↓
+[URL Detection] ← Every website you visit
+[File Scanning] ← Every download
+[Tracker Blocking] ← Tracking pixels
+[System Checks] ← Security status
+    ↓
+Real-time Alerts & Logging
+```
+
+### 2. Zero Privacy Concerns
+- ✅ All processing happens **locally** on your computer
+- ✅ **No cloud uploads** unless you enable optional APIs
+- ✅ **No data collection** or personal information tracking
+- ✅ **Fully open source** - code auditable by security researchers
+
+### 3. Easy Control
+- **Enable/Disable** any feature anytime
+- **Adjust sensitivity** for your comfort level
+- **Pause monitoring** when needed
+- **Review logs** of what was blocked
+
+---
+
+## 📥 Installation
+
+### System Requirements
+
+| Windows | Linux |
+|---------|-------|
+| Windows 7+ | Ubuntu 18.04+ |
+| 512MB RAM | Debian 9+ |
+| 500MB disk | Fedora 30+ |
+| - | Arch Linux |
+
+### Installation Steps
+
+See [GETTING_STARTED_DESKTOP.md](GETTING_STARTED_DESKTOP.md) for detailed walkthrough.
+
+**Quick version:**
+
+**Windows:**
+```
+download install-windows.bat → double-click → wait → done
+```
+
+**Linux:**
+```
+wget install-linux.sh → chmod +x install-linux.sh → ./install-linux.sh → done
+```
+
+---
+
+## ⚙️ Configuration
+
+### Sensitivity Levels
+
+| Level | For You | Default Features |
+|-------|---------|------------------|
+| 🟢 **Low** | Trusted sites only | Confirms phishing, blocks extreme threats |
+| 🟡 **Medium** | Normal browsing | Balanced protection (RECOMMENDED) |
+| 🔴 **High** | Risky/unknown sites | Aggressive detection, may flag safe sites |
+| ⚫ **Extreme** | Security research | Maximum alerts, very strict filtering |
+
+### Feature Toggle
+
+```
+✅ Phishing Detection      - Blocks fake login pages
+✅ Tracker Blocking       - Stops behavioral tracking  
+✅ Download Scanning      - Scans files for malware
+✅ URL Scanning          - Monitors all web traffic
+✅ Background Service    - Silent protection in tray
+✅ Auto-Start           - Launch on boot (optional)
+✅ Notifications        - Real-time threat alerts
+```
+
+### Example Settings
+
+**For Normal Users:**
+```
+Sensitivity: Medium 🟡
+All features: ON ✅
+Background: ON ✅
+Auto-start: OFF (optional)
+Notifications: ON ✅
+```
+
+**For Security-Conscious:**
+```
+Sensitivity: High 🔴
+All features: ON ✅
+Background: ON ✅
+Auto-start: ON ✅
+Notifications: ON ✅
+API Keys: Enabled
+```
+
+---
+
+## 🔧 Tools
+
+### 🔗 URL Scanner
+Manually test any suspicious URL:
+```
+1. Copy URL to clipboard
+2. Click Tools → Scan URL
+3. Get instant analysis
+```
+
+### 💻 System Scan
+Comprehensive security audit:
+```
+1. Click Tools → Full System Scan
+2. Wait for completion
+3. Review findings
+```
+
+### ⚠️ Vulnerability Check
+Find security weaknesses:
+```
+1. Click Tools → Check Vulnerabilities
+2. See potential issues
+3. Follow recommendations
+```
+
+---
+
+## 📋 Understanding Threats
+
+### 🎣 Phishing (High Severity)
+**What:** Website impersonating a trusted service to steal credentials
+
+**Examples:**
+- `paypa1.com` (fake PayPal)
+- "Click here to verify your Amazon account"
+- Urgent language demanding action
+
+**What to do:** ❌ Don't click, close the tab
+
+### 🚫 Tracker (Low Severity)
+**What:** Analytics/tracking pixels collecting your behavior data
+
+**Examples:**
 - Google Analytics
 - Facebook Pixel
-- DoubleClick
-- Twitter
-- And 20+ others
+- Hotjar session recording
 
-**Privacy Modes:**
-- **Balanced:** You get alerts about trackers
-- **Strict:** Trackers are automatically blocked
+**What to do:** ✅ Already blocked, you're safe
 
-### ⬇️ Download Protection
-- Checks files before they download
-- Warns you about dangerous file types (.exe, .bat, etc.)
-- Checks if the download source is suspicious
+### 📥 Malware (High Severity)
+**What:** Malicious software trying to infect your computer
 
-### 📋 Threat Log
-- See all threats the extension blocked
-- Log clears when you close your browser (privacy!)
-- Check for trends or patterns
+**Examples:**
+- Suspicious .exe files
+- Files flagged by VirusTotal
+- Executable with unusual size
 
-### ⚙️ Easy Settings
-- Turn features on/off
-- Choose alert sensitivity (Low, Medium, High)
-- Add your API keys securely
-- Reset to defaults anytime
+**What to do:** ❌ Delete immediately
+
+### 🔗 Suspicious URL (Medium Severity)
+**What:** URL with unusual patterns suggesting attacks
+
+**Examples:**
+- IP addresses instead of domain names
+- Excessive URL encoding
+- JavaScript protocol handlers
+
+**What to do:** ❌ Avoid clicking
 
 ---
 
-## 📊 What Uses Your Data?
+## 🎓 Getting Help
 
-**Short Answer: Nothing. We don't collect anything.**
+### 📖 Documentation
 
-- ❌ We don't track you
-- ❌ We don't store your history
-- ❌ We don't send data anywhere
-- ❌ We don't have servers
-- ❌ We don't have accounts
+| Document | Purpose |
+|----------|---------|
+| [README-DESKTOP.md](README-DESKTOP.md) | Complete feature guide |
+| [GETTING_STARTED_DESKTOP.md](GETTING_STARTED_DESKTOP.md) | Installation & first-time setup |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Problem solving (20+ scenarios) |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical design details |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute code |
 
-**What happens:**
-- Threat log is stored **only in your browser**
-- Log is **automatically deleted** when you close Chrome
-- Your API key is **stored locally only**
-- Your API key is **never logged or shared**
+### 🤝 Get Support
+
+- **GitHub Issues:** https://github.com/DarkRX01/Real-World-Cyber-Defense/issues
+- **Discussions:** https://github.com/DarkRX01/Real-World-Cyber-Defense/discussions
+- **Check Troubleshooting:** [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+
+### 🔧 System Tray Menu
+
+Right-click system tray icon:
+```
+→ Show        - Open app window
+→ Pause       - Pause monitoring
+→ Settings    - Open settings
+→ Exit        - Close app
+```
 
 ---
 
 ## ❓ Frequently Asked Questions
 
-### Q: Is it really free?
-**A:** Yes! Completely free. No ads, no hidden fees, no subscriptions. Forever.
+**Q: Is it really free?**
+A: Yes! 100% free and open source (MIT License). No ads, no subscriptions.
 
-### Q: Do I need an API key?
-**A:** Optional. The extension works without one with built-in tracker detection. API key enables extra threat detection (also free from Google).
+**Q: Will it slow my computer?**
+A: No! Uses <50MB RAM and minimal CPU. Lightweight by design.
 
-### Q: Will it slow down my browser?
-**A:** No. It runs in the background and barely uses resources.
+**Q: Can I trust it?**
+A: Yes! Code is fully open source. Anyone can review it.  
+   GitHub: https://github.com/DarkRX01/Real-World-Cyber-Defense
 
-### Q: Is my data safe?
-**A:** Yes. Everything stays on your computer. Nothing is sent to us (we don't exist as a service).
+**Q: Does it work offline?**
+A: Mostly! Basic phishing detection works offline. Enhanced features need internet.
 
-### Q: How do I uninstall it?
-**A:** Go to `chrome://extensions/` → Find the extension → Click the trash icon.
+**Q: What about privacy?**
+A: 100% local. No data leaves your computer unless you enable optional APIs.
 
-### Q: Can I contribute?
-**A:** Yes! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to help improve it.
+**Q: Can I customize it?**
+A: Yes! Settings, sensitivity, feature toggles, all customizable.
 
-### Q: Found a bug?
-**A:** Report it at [GitHub Issues](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues).
+**Q: Works with antivirus?**
+A: Yes! Complements Windows Defender, Norton, McAfee, etc.
+
+**Q: Can I uninstall it?**
+A: Yes! Clean uninstall without leftover files.
 
 ---
 
-## 💡 Tips for Best Results
+## 🚀 Advanced Features
 
-### For Maximum Protection
-1. Use "High" alert level
-2. Enable all features
-3. Add Google Safe Browsing API key
-4. Use "Strict" privacy mode
+### Optional API Keys
+For enhanced detection:
 
-### For Performance
-1. Use "Low" alert level
-2. Disable download scanning (if not needed)
-3. Works perfectly without API key
+**Google Safe Browsing API:**
+```
+1. Go to https://console.cloud.google.com
+2. Create API key
+3. Add to app settings
+→ Better phishing detection
+```
 
-### For Privacy
-1. Use "Strict" privacy mode
-2. Check threat log occasionally
-3. Clear log anytime you want
+**VirusTotal API:**
+```
+1. Go to https://www.virustotal.com
+2. Create free account
+3. Add API key to settings
+→ File scans check global malware database
+```
+
+### Command Line Usage
+
+```bash
+# Launch normally
+python3 -m cyber_defense.app_main
+
+# Launch in background
+python3 -m cyber_defense.app_main --headless
+
+# Check status
+cyber-defense --status
+```
+
+### Logs & Data
+
+**Windows:**
+```
+C:\Users\[YourUsername]\.cyber-defense\
+├── settings.json
+├── threat_log.json
+└── logs\
+```
+
+**Linux:**
+```
+~/.cyber-defense/
+├── settings.json
+├── threat_log.json
+└── logs/
+```
+
+---
+
+## 📈 Version History
+
+### v2.0.0 - Desktop Edition (Current)
+- ✨ Complete redesign from Chrome extension to standalone app
+- ✨ Cross-platform support (Windows & Linux)
+- ✨ PyQt5 GUI with beautiful dashboard
+- ✨ Real-time threat monitoring
+- ✨ Customizable sensitivity levels
+- ✨ System tray integration
+- ✨ Advanced phishing detection
+- ✨ Tracker blocking
+- ✨ Download protection
+- ✨ System vulnerability detection
+
+### v1.0.0 - Chrome Extension
+- Initial Chrome extension release
+- URL scanning
+- Basic phishing detection
+- Tracker blocking
 
 ---
 
 ## 🤝 Contributing
 
-Want to help? We'd love it!
+Want to help improve Cyber Defense?
 
-- 🐛 **Found a bug?** [Report it](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues)
-- 💡 **Have an idea?** [Suggest it](https://github.com/DarkRX01/Real-World-Cyber-Defense/discussions)
-- 👨‍💻 **Want to code?** See [CONTRIBUTING.md](CONTRIBUTING.md)
-
----
-
-## 📚 Documentation
-
-- **[FREE-GITHUB-INSTALL.md](FREE-GITHUB-INSTALL.md)** - Installation guide
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - How to contribute
-- **[SECURITY.md](SECURITY.md)** - Security policy
-- **[DEVELOPMENT.md](DEVELOPMENT.md)** - For developers
-- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - How to test
+See [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- How to report bugs
+- How to request features
+- How to submit code improvements
+- Development setup guide
+- Testing procedures
 
 ---
 
-## 📞 Support
+## 📄 License
 
-### Having Issues?
-1. Check [TESTING_GUIDE.md](TESTING_GUIDE.md)
-2. Check [FREE-GITHUB-INSTALL.md](FREE-GITHUB-INSTALL.md)
-3. Open a [GitHub Issue](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues)
+MIT License - Free to use, modify, and distribute.
 
-### Questions?
-- Ask in [GitHub Discussions](https://github.com/DarkRX01/Real-World-Cyber-Defense/discussions)
-- Check documentation files
-- Read the FAQ above
+See [LICENSE](LICENSE) for full details.
 
 ---
 
-## 📋 System Requirements
+## 🛠️ Built With
 
-- **Chrome:** v88 or newer
-- **OS:** Windows, macOS, Linux (any OS that runs Chrome)
-- **Internet:** Required for API features (works offline with fallback)
-
----
-
-## 📜 License
-
-MIT License - See [LICENSE](LICENSE) for details.
-
-**Simple version:** You can use it, modify it, share it, do whatever you want. Just keep the license notice.
+- **Python 3** - Core application
+- **PyQt5** - GUI framework
+- **Requests** - HTTP requests
+- **Pyperclip** - Clipboard access
 
 ---
 
-## 🎯 Project Goals
+## 🙏 Acknowledgments
 
-✅ Protect users from online threats
-✅ Respect user privacy completely
-✅ Keep it simple and easy to use
-✅ Maintain 100% transparency
-✅ Stay free forever
-✅ Build a helpful community
-
----
-
-## 🚀 Coming Soon
-
-- [ ] Better UI with dark mode
-- [ ] Archive file scanning
-- [ ] Enhanced heuristics
-- [ ] Firefox version
-- [ ] More customization options
-- [ ] Community threat sharing
+Thanks to everyone who:
+- Tested the application
+- Reported issues
+- Suggested improvements
+- Contributed code
+- Shared with others
 
 ---
 
-## 📊 Project Stats
+## 📞 Contact & Social
 
-- **2,500+** lines of code
-- **18+** documentation files
-- **100%** privacy-focused
-- **MIT Licensed** (open-source)
-- **Zero cost** to develop and use
+- **GitHub:** https://github.com/DarkRX01/Real-World-Cyber-Defense
+- **Issues:** Report bugs and request features
+- **Discussions:** Community Q&A and feedback
 
 ---
 
-## ⭐ Love It? Help Spread the Word!
+## ⚡ Quick Links
 
-- ⭐ Star this repository on GitHub
-- 📢 Share with friends
-- 🐛 Report issues if you find them
-- 💬 Join the discussions
-- 👨‍💻 Contribute improvements
-
----
-
-## 🙏 Thanks!
-
-Thank you for caring about your online security and privacy.
-
-**Stay safe online!** 🛡️
+| Link | Purpose |
+|------|---------|
+| [Getting Started](GETTING_STARTED_DESKTOP.md) | Installation guide |
+| [Full Features](README-DESKTOP.md) | Complete feature list |
+| [Troubleshooting](TROUBLESHOOTING.md) | Fix common issues |
+| [Contributing](CONTRIBUTING.md) | How to contribute |
+| [GitHub Releases](https://github.com/DarkRX01/Real-World-Cyber-Defense/releases) | Download latest version |
 
 ---
 
-**Have feedback?** We'd love to hear it. Open an issue or discussion on GitHub!
+**Your computer. Your security. Your control. 🛡️**
 
-*Real-World Cyber Defense - Protecting your browsing since 2026* 🚀
+---
+
+### Made with ❤️ for cybersecurity and privacy
+
+**Real-World Cyber Defense** - Because your security matters.
