@@ -17,15 +17,6 @@ import urllib.request
 import zipfile
 import json
 
-# Fix encoding for Windows console
-import io
-if sys.stdout.encoding.lower() != 'utf-8':
-    try:
-        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-    except:
-        pass
-
 def check_python():
     """Check if Python is installed"""
     try:
@@ -88,49 +79,54 @@ def launch_app():
         return False
 
 def main():
-    print("=" * 60)
-    print("CYBER DEFENSE - INSTALLER")
-    print("=" * 60)
-    print()
-    
-    # Check Python
-    if not check_python():
-        print("[*] Python not found, downloading...")
-        python_exe = download_python()
-        if python_exe:
-            install_python(python_exe)
-            try:
-                os.remove(python_exe)
-            except:
-                pass
+    try:
+        print("=" * 60)
+        print("CYBER DEFENSE - INSTALLER")
+        print("=" * 60)
+        print()
+        
+        # Check Python
+        if not check_python():
+            print("[*] Python not found, downloading...")
+            python_exe = download_python()
+            if python_exe:
+                install_python(python_exe)
+                try:
+                    os.remove(python_exe)
+                except:
+                    pass
+            else:
+                print("[!] Installation failed. Check internet connection.")
+                input("Press Enter to exit...")
+                sys.exit(1)
         else:
-            print("[!] Installation failed. Check internet connection.")
+            print("[+] Python already installed")
+        
+        # Install dependencies
+        if not install_dependencies():
+            print()
+            print("[!] Installation failed. Please check your internet connection.")
             input("Press Enter to exit...")
             sys.exit(1)
-    else:
-        print("[+] Python already installed")
-    
-    # Install dependencies
-    if not install_dependencies():
+        
         print()
-        print("[!] Installation failed. Please check your internet connection.")
-        input("Press Enter to exit...")
-        sys.exit(1)
-    
-    print()
-    print("=" * 60)
-    print("[+] SETUP COMPLETE!")
-    print("=" * 60)
-    print()
-    
-    # Launch app
-    if launch_app():
-        print("Window should open in a few seconds...")
-        print("Enjoy protected browsing!")
-        input("Press Enter to close this window...")
-        sys.exit(0)
-    else:
-        print("[!] Failed to start application")
+        print("=" * 60)
+        print("[+] SETUP COMPLETE!")
+        print("=" * 60)
+        print()
+        
+        # Launch app
+        if launch_app():
+            print("Window should open in a few seconds...")
+            print("Enjoy protected browsing!")
+            input("Press Enter to close this window...")
+            sys.exit(0)
+        else:
+            print("[!] Failed to start application")
+            input("Press Enter to exit...")
+            sys.exit(1)
+    except Exception as e:
+        print(f"[!] Unexpected error: {e}")
         input("Press Enter to exit...")
         sys.exit(1)
 

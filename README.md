@@ -15,7 +15,17 @@
 ## 📥 DOWNLOAD NOW! (2 Seconds!)
 
 ### 🪟 Windows Users
-**[⬇️ DOWNLOAD CyberDefense.exe (7.25 MB)](dist/CyberDefense.exe)** ⭐ CLICK HERE
+**[⬇️ DOWNLOAD CyberDefense.exe (7.26 MB)](dist/CyberDefense.exe)** ⭐ CLICK HERE
+
+#### ⚠️ IMPORTANT: SmartScreen Warning
+When you open the EXE, Windows might show a warning. **This is NORMAL!**
+
+**Just do this:**
+1. Click "More info"
+2. Click "Run anyway"
+3. That's it! ✅
+
+[👉 Learn why → SMARTSCREEN-WARNING.md](SMARTSCREEN-WARNING.md)
 
 Double-click the downloaded file → **Done!** ✅
 
