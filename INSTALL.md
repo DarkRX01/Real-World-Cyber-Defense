@@ -2,12 +2,18 @@
 
 ## 🪟 WINDOWS - SUPER EASY (Just 1 Click!)
 
-### Option 1: Pre-Built EXE (Fastest!)
-1. **Download**: `CyberDefense.exe` from releases
+### Option 1: Batch Installer (RECOMMENDED!) ⭐
+1. **Download**: `setup.bat` from the repo
 2. **Double-click it**
-3. **Done!** ✅ Opens instantly
+3. **Done!** ✅ Automatically installs everything (no errors!)
 
-### Option 2: Source Code
+### Option 2: Pre-Built EXE
+1. **Download**: `CyberDefense.exe` from `/dist/` folder
+2. **Double-click it**
+3. If Windows shows warning: Click "More info" → "Run anyway"
+4. **Done!** ✅ Opens instantly
+
+### Option 3: Source Code
 1. **Download**: `CyberDefense-source-v2.0.0.zip`
 2. **Extract it**
 3. **Double-click**: `INSTALL-ME.bat`
@@ -38,8 +44,9 @@ git clone https://github.com/DarkRX01/Real-World-Cyber-Defense.git && cd Real-Wo
 
 ## ❓ Having Issues?
 
-**Windows**: See `TROUBLESHOOTING.md`  
-**Linux**: Run `chmod +x install-linux.sh && ./install-linux.sh`
+**Windows**: See `SMARTSCREEN-WARNING.md` for EXE issues  
+**Linux**: Make sure Python 3.9+ is installed  
+**Both**: Check `TROUBLESHOOTING.md` for common fixes
 
 ---
 

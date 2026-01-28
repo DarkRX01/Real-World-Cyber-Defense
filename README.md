@@ -12,25 +12,22 @@
 
 ---
 
-## 📥 DOWNLOAD NOW! (2 Seconds!)
+## 📥 INSTALLATION (Pick Your OS)
 
-### 🪟 Windows Users
-**[⬇️ DOWNLOAD CyberDefense.exe (7.26 MB)](dist/CyberDefense.exe)** ⭐ CLICK HERE
+### 🪟 Windows Users - TWO EASY OPTIONS:
 
-#### ⚠️ IMPORTANT: SmartScreen Warning
-When you open the EXE, Windows might show a warning. **This is NORMAL!**
+**Option 1: Batch Installer (RECOMMENDED)** ⭐
+1. Download: `setup.bat` (from this repo)
+2. Double-click it
+3. **Done!** ✅ Auto-installs Python + runs app
 
-**Just do this:**
-1. Click "More info"
-2. Click "Run anyway"
-3. That's it! ✅
+**Option 2: Pre-Built EXE**
+1. [Download CyberDefense.exe](dist/CyberDefense.exe)
+2. Double-click it
+3. If Windows shows warning: Click "More info" → "Run anyway"
+4. **Done!** ✅
 
-[👉 Learn why → SMARTSCREEN-WARNING.md](SMARTSCREEN-WARNING.md)
-
-Double-click the downloaded file → **Done!** ✅
-
-### 🐧 Linux Users
-Copy & paste this one command:
+### 🐧 Linux Users - ONE COMMAND:
 ```bash
 git clone https://github.com/DarkRX01/Real-World-Cyber-Defense.git && cd Real-World-Cyber-Defense && python app_main.py
 ```
