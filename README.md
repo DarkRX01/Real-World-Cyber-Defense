@@ -429,7 +429,7 @@ C:\Users\[YourUsername]\.cyber-defense\
 ## 📈 Version History
 
 ### v2.0.0 - Desktop Edition (Current)
-- ✨ Complete redesign from Chrome extension to standalone app
+- ✨ Professional desktop application for Windows and Linux
 - ✨ Cross-platform support (Windows & Linux)
 - ✨ PyQt5 GUI with beautiful dashboard
 - ✨ Real-time threat monitoring
@@ -440,11 +440,8 @@ C:\Users\[YourUsername]\.cyber-defense\
 - ✨ Download protection
 - ✨ System vulnerability detection
 
-### v1.0.0 - Chrome Extension
-- Initial Chrome extension release
-- URL scanning
-- Basic phishing detection
-- Tracker blocking
+### v1.0.0 - Initial Release
+- Desktop security application release
 
 ---
 

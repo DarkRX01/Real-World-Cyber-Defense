@@ -1,4 +1,4 @@
-# Contributing to Real-World Cyber Defense Extension
+# Contributing to Real-World Cyber Defense
 
 Thank you for your interest in contributing! This document provides guidelines and instructions for contributing to the project.
 
