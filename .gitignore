@@ -3,7 +3,7 @@ build/
 *.spec
 *.egg-info/
 # Allow the final EXE in dist/
-!dist/CyberDefense.exe
+dist/
 
 # Python
 __pycache__/

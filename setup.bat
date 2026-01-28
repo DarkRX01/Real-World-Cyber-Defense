@@ -33,7 +33,7 @@ if errorlevel 1 (
 
 echo.
 echo Installing required packages...
-python -m pip install --quiet --no-cache-dir PyQt5 requests pyperclip
+python -m pip install --quiet --no-cache-dir PyQt5 requests pyperclip psutil
 
 echo.
 echo Setup complete! Starting Cyber Defense...

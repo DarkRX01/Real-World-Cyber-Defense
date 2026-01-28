@@ -14,8 +14,8 @@ __version__ = "2.0.0"
 __author__ = "DarkRX01"
 __license__ = "MIT"
 
-from .app_main import CyberDefenseApp
-from .threat_engine import ThreatDetectionEngine
-from .background_service import BackgroundService
+from app_main import CyberDefenseApp, main
+from threat_engine import scan_url, ThreatResult, Sensitivity
+from background_service import BackgroundService
 
-__all__ = ['CyberDefenseApp', 'ThreatDetectionEngine', 'BackgroundService']
+__all__ = ["CyberDefenseApp", "main", "scan_url", "ThreatResult", "Sensitivity", "BackgroundService"]

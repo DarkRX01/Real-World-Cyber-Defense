@@ -31,13 +31,15 @@ def build_safe_windows_exe():
     # Create safe PyInstaller spec file
     spec_content = '''# -*- mode: python ; coding: utf-8 -*-
 
+import os
+
 block_cipher = None
 
 a = Analysis(
     ['app_main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('icons/shield.svg', 'icons')] if os.path.exists(os.path.join('icons', 'shield.svg')) else [],
     hiddenimports=['PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets'],
     hookspath=[],
     hooksconfig={},
@@ -54,25 +56,32 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
+    exclude_binaries=True,
     name='CyberDefense',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
+    upx=False,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='icons/icon.ico' if os.path.exists('icons/icon.ico') else None,
+    icon='icons/icon.ico' if os.path.exists(os.path.join('icons', 'icon.ico')) else None,
     version='version_info.txt' if os.path.exists('version_info.txt') else None,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=False,
+    upx_exclude=[],
+    name='CyberDefense'
 )
 '''
     
@@ -148,7 +157,7 @@ VSVersionInfo(
     print()
     
     # Check if build was successful
-    exe_path = Path("dist/CyberDefense.exe")
+    exe_path = Path("dist/CyberDefense/CyberDefense.exe")
     if exe_path.exists():
         print("✅ BUILD SUCCESSFUL!")
         print()
@@ -159,7 +168,7 @@ VSVersionInfo(
         print("   ✓ No suspicious imports")
         print("   ✓ Proper version information")
         print("   ✓ Clean build configuration")
-        print("   ✓ UPX compression for smaller size")
+        print("   ✓ No UPX compression")
         print()
         print("🚀 Next Steps:")
         print("   1. Test the executable locally")
@@ -177,13 +186,44 @@ echo 2. Run as administrator
 echo 3. Submit to antivirus vendor for whitelisting
 echo.
 pause
-start "" "dist\\CyberDefense.exe"
+start "" "dist\\CyberDefense\\CyberDefense.exe"
 '''
         
         with open('test-exe.bat', 'w') as f:
             f.write(test_script)
             
         print("📝 Created test-exe.bat for testing")
+
+        try:
+            portable_dir = Path("dist/CyberDefense")
+            portable_dir.mkdir(parents=True, exist_ok=True)
+
+            launcher_path = portable_dir / "Run Cyber Defense.bat"
+            launcher_content = """@echo off
+setlocal
+cd /d "%~dp0"
+start "" "CyberDefense.exe"
+endlocal
+"""
+            launcher_path.write_text(launcher_content, encoding="utf-8")
+
+            readme_path = portable_dir / "README-FIRST.txt"
+            readme_content = """Real-World Cyber Defense (Windows)
+
+How to run:
+1) Double-click: Run Cyber Defense.bat
+
+If Windows SmartScreen shows a warning:
+- Click: More info
+- Click: Run anyway
+
+If your antivirus blocks it:
+- This can be a false positive for new unsigned apps.
+- Add an exception for this folder or contact your AV vendor.
+"""
+            readme_path.write_text(readme_content, encoding="utf-8")
+        except Exception:
+            pass
         
     else:
         print("❌ BUILD FAILED")
