@@ -27,40 +27,38 @@
 
 ---
 
-## 📥 Download Now!
+## ⚡ INSTALLATION (Pick Your Platform)
 
-### 🚀 SUPER SIMPLE - Just 3 Steps!
+### 🪟 Windows Users - Two Options:
 
-1. **[Download ZIP (30 KB)](CyberDefense-source-v2.0.0.zip)** ← Click here
-2. **Extract the ZIP folder**
-3. **Double-click `INSTALL-ME.bat`** ← That's it!
+**Option 1: Pre-Built EXE (Fastest!)** ⭐
+```
+1. Download: CyberDefense.exe (from /dist/ folder)
+2. Double-click it
+3. Done! ✅
+```
 
-**Windows automatically installs everything & launches the app!** No confusing steps. No terminal windows. Just works.
+**Option 2: ZIP Installer (Safe)**
+```
+1. Download: CyberDefense-source-v2.0.0.zip
+2. Extract folder
+3. Double-click INSTALL-ME.bat
+4. Done! ✅
+```
 
-👉 **[Windows Installation Guide](WINDOWS-INSTALL-GUIDE.md)** for more details
+### 🐧 Linux Users - One Command:
+
+```bash
+git clone https://github.com/DarkRX01/Real-World-Cyber-Defense.git && cd Real-World-Cyber-Defense && python app_main.py
+```
+
+**That's it!** ✅
 
 ---
 
-## ⚡ Quick Start (30 Seconds)
+## 📖 Full Setup Guide
 
-### 🎯 Just Want to Download?
-
-#### 🪟 Windows Users
-```bash
-1. Download ZIP (30 KB)
-2. Extract folder
-3. Double-click INSTALL-ME.bat
-4. Done! ✅ (1-2 minute automatic setup)
-```
-
-#### 🐧 Linux Users
-```bash
-unzip CyberDefense-source-v2.0.0.zip
-cd CyberDefense-source-v2.0.0
-./install-linux.sh
-```
-
-**Alternative:** Use pre-built EXE in `/dist/CyberDefense.exe` for instant launch (no setup needed!)
+→ See **[INSTALL.md](INSTALL.md)** for detailed instructions for both platforms
 
 ---
 
