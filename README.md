@@ -19,13 +19,14 @@
 **Option 1: Batch Installer (RECOMMENDED)** ⭐
 1. Download: `setup.bat` (from this repo)
 2. Double-click it
-3. **Done!** ✅ Auto-installs Python + runs app
+3. **Done!** ✅ Installs dependencies + runs app (**Python 3.9+ required**) 
 
 **Option 2: Pre-Built EXE**
-1. [Download CyberDefense.exe](dist/CyberDefense.exe)
-2. Double-click it
-3. If Windows shows warning: Click "More info" → "Run anyway"
-4. **Done!** ✅
+1. Download the latest **Windows build** from GitHub Releases
+2. Extract the zip
+3. Run: `CyberDefense.exe`
+4. If Windows shows warning: Click "More info" → "Run anyway"
+5. **Done!** ✅
 
 ### 🐧 Linux Users - ONE COMMAND:
 ```bash
@@ -57,9 +58,10 @@ git clone https://github.com/DarkRX01/Real-World-Cyber-Defense.git && cd Real-Wo
 
 **Option 1: Pre-Built EXE (Fastest!)** ⭐
 ```
-1. Download: CyberDefense.exe (from /dist/ folder)
-2. Double-click it
-3. Done! ✅
+1. Download the latest Windows portable zip from GitHub Releases
+2. Extract the zip
+3. Run: CyberDefense.exe
+4. Done! ✅
 ```
 
 **Option 2: ZIP Installer (Safe)**

@@ -7,4 +7,4 @@ echo 2. Run as administrator
 echo 3. Submit to antivirus vendor for whitelisting
 echo.
 pause
-start "" "dist\CyberDefense.exe"
+start "" "dist\CyberDefense\CyberDefense.exe"

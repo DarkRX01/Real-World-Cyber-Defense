@@ -1,0 +1,60 @@
+name: Windows Build
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Build (onedir, no UPX)
+        run: |
+          python build-safe-exe.py
+
+      - name: Create portable zip
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (!(Test-Path -Path "dist/CyberDefense/CyberDefense.exe")) {
+            throw "Build output not found at dist/CyberDefense/CyberDefense.exe"
+          }
+          if (Test-Path -Path "CyberDefense-Windows.zip") {
+            Remove-Item -Force "CyberDefense-Windows.zip"
+          }
+          Compress-Archive -Path "dist/CyberDefense/*" -DestinationPath "CyberDefense-Windows.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CyberDefense-Windows
+          path: CyberDefense-Windows.zip
+
+      - name: Publish GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: CyberDefense-Windows.zip
+          generate_release_notes: true
