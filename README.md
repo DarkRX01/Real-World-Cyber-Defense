@@ -27,6 +27,27 @@
 
 ---
 
+## 📥 Download Now!
+
+### 🪟 Windows - Pick One:
+
+**Option 1: Direct EXE (Just works!)**
+- [Download CyberDefense.exe](CyberDefense.exe) (35.32 MB)
+- Double-click to run - no installation needed
+
+**Option 2: Auto-Installer**
+- [Download install-windows.bat](install-windows.bat)
+- Double-click to auto-install everything
+
+### 🐧 Linux - All Distros:
+
+- [Download install-linux.sh](install-linux.sh)
+- Run: `chmod +x install-linux.sh && ./install-linux.sh`
+
+👉 **[View all download options →](DOWNLOADS.md)**
+
+---
+
 ## ⚡ Quick Start (30 Seconds)
 
 ### 🎯 Just Want to Download?
@@ -36,23 +57,17 @@
 
 #### 🪟 Windows
 ```bash
-1. Download install-windows.bat
+1. Download CyberDefense.exe
 2. Double-click it
-3. Wait 2 minutes
-4. Done! Desktop shortcut created ✅
+3. Done! Running instantly ✅
 ```
 
 #### 🐧 Linux
 ```bash
+chmod +x install-linux.sh
 ./install-linux.sh
-# Supports: Ubuntu, Debian, Fedora, Arch Linux
-# Auto-detects your distro
+# That's it!
 ```
-
-**Installation takes 2-3 minutes.** Includes automatic dependency setup.
-
-### 📖 New Here?
-Start with **[SETUP.md](SETUP.md)** - Everything explained in simple terms
 
 ---
 
