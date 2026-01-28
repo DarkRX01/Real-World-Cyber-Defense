@@ -29,32 +29,30 @@
 
 ## ⚡ Quick Start (30 Seconds)
 
+### 🎯 Just Want to Download?
+👉 **[Go to QUICK-START.md](QUICK-START.md)** for the super easy installation guide
+
 ### Choose Your Operating System:
 
 #### 🪟 Windows
 ```bash
-# 1. Download installer
-download install-windows.bat
-
-# 2. Double-click it
-install-windows.bat
-
-# 3. Done! Look for "Cyber Defense" shortcut on Desktop
+1. Download install-windows.bat
+2. Double-click it
+3. Wait 2 minutes
+4. Done! Desktop shortcut created ✅
 ```
 
-#### 🐧 Linux (Ubuntu/Debian/Fedora)
+#### 🐧 Linux
 ```bash
-# 1. Download installer
-wget https://github.com/DarkRX01/Real-World-Cyber-Defense/raw/main/install-linux.sh
-chmod +x install-linux.sh
-
-# 2. Run it
 ./install-linux.sh
-
-# 3. Done! Launch: cyber-defense
+# Supports: Ubuntu, Debian, Fedora, Arch Linux
+# Auto-detects your distro
 ```
 
-**Installation takes 2-3 minutes.** Includes automatic Python setup.
+**Installation takes 2-3 minutes.** Includes automatic dependency setup.
+
+### 📖 New Here?
+Start with **[SETUP.md](SETUP.md)** - Everything explained in simple terms
 
 ---
 
