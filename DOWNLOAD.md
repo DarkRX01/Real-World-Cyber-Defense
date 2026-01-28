@@ -1,16 +1,20 @@
 # 🚀 DOWNLOAD CYBER DEFENSE
 
-## ⭐ WINDOWS - DOWNLOAD EXE (7.25 MB)
+## ⭐ WINDOWS - DOWNLOAD EXE (7.26 MB)
 
 **[Click Here to Download CyberDefense.exe](dist/CyberDefense.exe)**
-
-Then just **double-click it** to run!
 
 ### Instructions:
 1. Click the link above ⬆️
 2. Click "Download" button
 3. Double-click the downloaded file
-4. **Done!** ✅ Opens instantly
+4. **IMPORTANT:** If you see a warning, click "More info" then "Run anyway"
+5. **Done!** ✅ Opens instantly
+
+### Why the SmartScreen warning?
+This is normal for new unsigned apps. It's a Windows safety feature, not a security issue.
+
+👉 [Full explanation → SMARTSCREEN-WARNING.md](SMARTSCREEN-WARNING.md)
 
 ---
 
