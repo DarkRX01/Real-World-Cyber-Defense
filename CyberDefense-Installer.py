@@ -17,6 +17,15 @@ import urllib.request
 import zipfile
 import json
 
+# Fix encoding for Windows console
+import io
+if sys.stdout.encoding.lower() != 'utf-8':
+    try:
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+    except:
+        pass
+
 def check_python():
     """Check if Python is installed"""
     try:
@@ -27,66 +36,66 @@ def check_python():
 
 def download_python():
     """Download Python 3.11"""
-    print("📥 Downloading Python 3.11...")
+    print("[*] Downloading Python 3.11...")
     url = "https://www.python.org/ftp/python/3.11.8/python-3.11.8-amd64.exe"
     temp_path = os.path.join(tempfile.gettempdir(), "python-installer.exe")
     
     try:
         urllib.request.urlretrieve(url, temp_path)
-        print("✅ Python downloaded")
+        print("[+] Python downloaded successfully")
         return temp_path
     except Exception as e:
-        print(f"❌ Failed to download Python: {e}")
+        print(f"[!] Failed to download Python: {e}")
         return None
 
 def install_python(exe_path):
     """Install Python silently"""
-    print("⚙️  Installing Python (this takes 1-2 minutes)...")
+    print("[*] Installing Python (this takes 1-2 minutes)...")
     try:
         subprocess.run([exe_path, "/quiet", "InstallAllUsers=1", "PrependPath=1"], 
                       capture_output=True, timeout=300)
-        print("✅ Python installed")
+        print("[+] Python installed successfully")
         return True
     except Exception as e:
-        print(f"❌ Python installation failed: {e}")
+        print(f"[!] Python installation failed: {e}")
         return False
 
 def install_dependencies():
     """Install PyQt5 and other dependencies"""
-    print("📦 Installing dependencies (1 minute)...")
+    print("[*] Installing dependencies (1 minute)...")
     try:
         subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", 
                        "PyQt5==5.15.9", "requests==2.31.0", "pyperclip==1.8.2"],
                       capture_output=True, timeout=300)
-        print("✅ Dependencies installed")
+        print("[+] Dependencies installed successfully")
         return True
     except Exception as e:
-        print(f"❌ Failed to install dependencies: {e}")
+        print(f"[!] Failed to install dependencies: {e}")
         return False
 
 def launch_app():
     """Launch the Cyber Defense application"""
-    print("🚀 Launching Cyber Defense...")
+    print("[*] Launching Cyber Defense...")
     try:
         subprocess.Popen([sys.executable, "app_main.py"], 
                         start_new_session=True,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL)
-        print("✅ Application started!")
+        print("[+] Application started!")
         return True
     except Exception as e:
-        print(f"❌ Failed to launch app: {e}")
+        print(f"[!] Failed to launch app: {e}")
         return False
 
 def main():
     print("=" * 60)
-    print("🛡️  CYBER DEFENSE - INSTALLER")
+    print("CYBER DEFENSE - INSTALLER")
     print("=" * 60)
     print()
     
     # Check Python
     if not check_python():
-        print("Python not found, downloading...")
+        print("[*] Python not found, downloading...")
         python_exe = download_python()
         if python_exe:
             install_python(python_exe)
@@ -94,18 +103,23 @@ def main():
                 os.remove(python_exe)
             except:
                 pass
+        else:
+            print("[!] Installation failed. Check internet connection.")
+            input("Press Enter to exit...")
+            sys.exit(1)
     else:
-        print("✅ Python already installed")
+        print("[+] Python already installed")
     
     # Install dependencies
     if not install_dependencies():
-        print("\n❌ Installation failed. Please check your internet connection.")
+        print()
+        print("[!] Installation failed. Please check your internet connection.")
         input("Press Enter to exit...")
         sys.exit(1)
     
     print()
     print("=" * 60)
-    print("✅ SETUP COMPLETE!")
+    print("[+] SETUP COMPLETE!")
     print("=" * 60)
     print()
     
@@ -113,9 +127,10 @@ def main():
     if launch_app():
         print("Window should open in a few seconds...")
         print("Enjoy protected browsing!")
+        input("Press Enter to close this window...")
         sys.exit(0)
     else:
-        print("Failed to start application")
+        print("[!] Failed to start application")
         input("Press Enter to exit...")
         sys.exit(1)
 
