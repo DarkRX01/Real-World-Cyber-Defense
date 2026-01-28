@@ -29,42 +29,38 @@
 
 ## 📥 Download Now!
 
-### ⚡ Fastest Way (30 KB Download!)
+### 🚀 SUPER SIMPLE - Just 3 Steps!
 
-**[Download CyberDefense-source-v2.0.0.zip](CyberDefense-source-v2.0.0.zip)** - All platforms
+1. **[Download ZIP (30 KB)](CyberDefense-source-v2.0.0.zip)** ← Click here
+2. **Extract the ZIP folder**
+3. **Double-click `INSTALL-ME.bat`** ← That's it!
 
-**Windows:** Extract → Double-click `install-windows.bat` → Done! ✅  
-**Linux:** Extract → Run `./install-linux.sh` → Done! ✅
+**Windows automatically installs everything & launches the app!** No confusing steps. No terminal windows. Just works.
 
-### Alternative Options:
-
-- **Windows EXE only** (35 MB): Found in `/dist/CyberDefense.exe`
-- **All options**: See [DOWNLOADS.md](DOWNLOADS.md)
+👉 **[Windows Installation Guide](WINDOWS-INSTALL-GUIDE.md)** for more details
 
 ---
 
 ## ⚡ Quick Start (30 Seconds)
 
 ### 🎯 Just Want to Download?
-👉 **[Go to QUICK-START.md](QUICK-START.md)** for the super easy installation guide
 
-### Choose Your Operating System:
-
-#### 🪟 Windows
+#### 🪟 Windows Users
 ```bash
-1. Download CyberDefense-source-v2.0.0.zip
-2. Extract the ZIP
-3. Double-click install-windows.bat
-4. Done! ✅
+1. Download ZIP (30 KB)
+2. Extract folder
+3. Double-click INSTALL-ME.bat
+4. Done! ✅ (1-2 minute automatic setup)
 ```
 
-#### 🐧 Linux
+#### 🐧 Linux Users
 ```bash
-1. Download CyberDefense-source-v2.0.0.zip
-2. Extract the ZIP
-3. Run ./install-linux.sh
-4. Done! ✅
+unzip CyberDefense-source-v2.0.0.zip
+cd CyberDefense-source-v2.0.0
+./install-linux.sh
 ```
+
+**Alternative:** Use pre-built EXE in `/dist/CyberDefense.exe` for instant launch (no setup needed!)
 
 ---
 
