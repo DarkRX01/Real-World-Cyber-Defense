@@ -53,7 +53,7 @@ Compress-Archive -Path manifest.json, src, icons -DestinationPath cyber-defense-
 
 ### Step 2: Go to GitHub Releases
 ```
-1. Go to: https://github.com/YOUR_USERNAME/cyber-defense-extension
+1. Go to: https://github.com/DarkRX01/Real-World-Cyber-Defense
 2. Click "Releases" (right sidebar)
 3. Click "Create a new release"
 ```
@@ -110,7 +110,7 @@ See [FREE-GITHUB-INSTALL.md](FREE-GITHUB-INSTALL.md) for easy setup!
 
 After publishing, your release will be at:
 ```
-https://github.com/YOUR_USERNAME/cyber-defense-extension/releases/tag/v1.0.0
+https://github.com/DarkRX01/Real-World-Cyber-Defense/releases/tag/v1.0.0
 ```
 
 Users download from:

@@ -21,26 +21,31 @@ This extension protects you while you browse:
 
 ---
 
-## 🚀 Quick Start (5 Minutes)
+## 🚀 Quick Start (Choose Your Path)
 
-### 1. Download the Extension
-Go to [Releases](https://github.com/YOUR_USERNAME/cyber-defense-extension/releases) and download the latest zip file.
+### ⚡ EASIEST: Use Installers
 
-### 2. Extract It
-Right-click the zip file → "Extract All" → Choose a folder
+📖 **[→ Open Full Installation Guide](./INSTALLER-GUIDE.md)**
 
-### 3. Load in Chrome
-```
-1. Open Chrome browser
-2. Go to: chrome://extensions/
-3. Turn ON "Developer mode" (toggle in top right)
-4. Click "Load unpacked"
-5. Select your extracted extension folder
-✅ Done! Extension is now active
-```
+We made 3 super easy ways to install:
 
-### 4. (Optional) Enable Full Threat Detection
+- **Windows?** → Use `setup.bat` (double-click!)
+- **Linux?** → Use `setup.sh` (one command!)
+- **Any OS?** → Follow manual steps (detailed guide)
+
+### 🔧 Manual Installation (5 Minutes)
+
+1. **Download** from [Releases](https://github.com/DarkRX01/Real-World-Cyber-Defense/releases)
+2. **Extract** the zip file
+3. **Open Chrome**: Go to `chrome://extensions/`
+4. **Enable Developer Mode** (toggle, top-right)
+5. **Click "Load unpacked"** and select the folder
+6. ✅ **Done!** Extension is active!
+
+### 🔑 (Optional) Add Your API Key for Better Threat Detection
+
 If you want Google Safe Browsing threat detection:
+
 ```
 1. Go to https://console.cloud.google.com/
 2. Create a NEW project (free account, no credit card needed)
@@ -131,7 +136,7 @@ Stops these trackers from following you:
 **A:** Yes! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to help improve it.
 
 ### Q: Found a bug?
-**A:** Report it at [GitHub Issues](https://github.com/YOUR_USERNAME/cyber-defense-extension/issues).
+**A:** Report it at [GitHub Issues](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues).
 
 ---
 
@@ -159,8 +164,8 @@ Stops these trackers from following you:
 
 Want to help? We'd love it!
 
-- 🐛 **Found a bug?** [Report it](https://github.com/YOUR_USERNAME/cyber-defense-extension/issues)
-- 💡 **Have an idea?** [Suggest it](https://github.com/YOUR_USERNAME/cyber-defense-extension/discussions)
+- 🐛 **Found a bug?** [Report it](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues)
+- 💡 **Have an idea?** [Suggest it](https://github.com/DarkRX01/Real-World-Cyber-Defense/discussions)
 - 👨‍💻 **Want to code?** See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
@@ -180,10 +185,10 @@ Want to help? We'd love it!
 ### Having Issues?
 1. Check [TESTING_GUIDE.md](TESTING_GUIDE.md)
 2. Check [FREE-GITHUB-INSTALL.md](FREE-GITHUB-INSTALL.md)
-3. Open a [GitHub Issue](https://github.com/YOUR_USERNAME/cyber-defense-extension/issues)
+3. Open a [GitHub Issue](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues)
 
 ### Questions?
-- Ask in [GitHub Discussions](https://github.com/YOUR_USERNAME/cyber-defense-extension/discussions)
+- Ask in [GitHub Discussions](https://github.com/DarkRX01/Real-World-Cyber-Defense/discussions)
 - Check documentation files
 - Read the FAQ above
 
