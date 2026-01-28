@@ -35,12 +35,12 @@
 - Support options included
 
 ### **Found a Bug?**
-👉 **[Open GitHub Issue](https://github.com/YOUR_USERNAME/cyber-defense-extension/issues)**
+👉 **[Open GitHub Issue](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues)**
 - Describe the problem
 - We'll help fix it
 
 ### **Have a Question?**
-👉 **[Ask on GitHub Discussions](https://github.com/YOUR_USERNAME/cyber-defense-extension/discussions)**
+👉 **[Ask on GitHub Discussions](https://github.com/DarkRX01/Real-World-Cyber-Defense/discussions)**
 - Community members help
 - Friendly environment
 
@@ -146,8 +146,8 @@ Choose ONE:
 **All stuck? Here's how to get help:**
 
 1. Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) first
-2. Search [GitHub Issues](https://github.com/YOUR_USERNAME/cyber-defense-extension/issues)
-3. Ask in [GitHub Discussions](https://github.com/YOUR_USERNAME/cyber-defense-extension/discussions)
+2. Search [GitHub Issues](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues)
+3. Ask in [GitHub Discussions](https://github.com/DarkRX01/Real-World-Cyber-Defense/discussions)
 4. Report security issues in [SECURITY.md](SECURITY.md)
 
 ---

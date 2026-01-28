@@ -257,13 +257,13 @@
    - [TESTING_GUIDE.md](TESTING_GUIDE.md) - How to test
 
 2. **Ask for help:**
-   - Go to [GitHub Issues](https://github.com/YOUR_USERNAME/cyber-defense-extension/issues)
+   - Go to [GitHub Issues](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues)
    - Click "New issue"
    - Describe your problem
    - We'll help!
 
 3. **Or ask a question:**
-   - Go to [GitHub Discussions](https://github.com/YOUR_USERNAME/cyber-defense-extension/discussions)
+   - Go to [GitHub Discussions](https://github.com/DarkRX01/Real-World-Cyber-Defense/discussions)
    - Ask your question
    - Community will help
 

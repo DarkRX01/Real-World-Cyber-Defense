@@ -325,7 +325,7 @@ Before submitting your PR:
 - Threat intelligence sharing
 - Enterprise logging features
 
-Check [Issues](https://github.com/YOUR_REPO/issues) and [Discussions](https://github.com/YOUR_REPO/discussions) for ideas.
+Check [Issues](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues) and [Discussions](https://github.com/DarkRX01/Real-World-Cyber-Defense/discussions) for ideas.
 
 ---
 

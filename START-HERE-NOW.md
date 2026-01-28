@@ -190,7 +190,7 @@ Everything here is designed to be super user-friendly. No technical jargon. Just
 
 **Something isn't working:**
 - See [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-- Open [GitHub Issues](https://github.com/YOUR_USERNAME/cyber-defense-extension/issues)
+- Open [GitHub Issues](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues)
 
 **Want to help:**
 - Read [CONTRIBUTING.md](CONTRIBUTING.md)

@@ -8,7 +8,7 @@
 
 ### 1️⃣ Download Extension
 ```
-1. Go to: https://github.com/YOUR_USERNAME/cyber-defense-extension/releases
+1. Go to: https://github.com/DarkRX01/Real-World-Cyber-Defense/releases
 2. Click the latest release
 3. Download "cyber-defense-extension.zip"
 4. Extract it to a folder
@@ -126,8 +126,8 @@ Your extension is now:
 ## 💡 Need Help?
 
 - 📖 Check [README.md](README.md) for features
-- 🐛 Report bugs in [GitHub Issues](https://github.com/YOUR_USERNAME/cyber-defense-extension/issues)
-- 💬 Ask questions in [GitHub Discussions](https://github.com/YOUR_USERNAME/cyber-defense-extension/discussions)
+- 🐛 Report bugs in [GitHub Issues](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues)
+- 💬 Ask questions in [GitHub Discussions](https://github.com/DarkRX01/Real-World-Cyber-Defense/discussions)
 - 📚 Read [DEVELOPMENT.md](DEVELOPMENT.md) if you want to contribute
 
 ---

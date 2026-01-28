@@ -35,7 +35,7 @@ git init
 git add .
 git commit -m "Initial commit: Cyber Defense Extension v1.0.0"
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/cyber-defense-extension.git
+git remote add origin https://github.com/DarkRX01/Real-World-Cyber-Defense.git
 git push -u origin main
 ```
 

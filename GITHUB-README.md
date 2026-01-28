@@ -252,7 +252,7 @@ We welcome contributions! Here's how:
 
 ### Getting Started
 1. **Fork** the repository
-2. **Clone** your fork: `git clone https://github.com/YOUR_USERNAME/cyber-defense-extension.git`
+2. **Clone** your fork: `git clone https://github.com/DarkRX01/Real-World-Cyber-Defense.git`
 3. **Create a branch**: `git checkout -b feature/your-feature`
 4. **Make changes** following our style guide
 5. **Test thoroughly** using TESTING_GUIDE.md
@@ -282,7 +282,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 ## 🐛 Issues & Support
 
 ### Report a Bug
-1. Check existing [issues](https://github.com/YOUR_REPO/issues)
+1. Check existing [issues](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues)
 2. Use bug report template when creating issue
 3. Include: Chrome version, reproduction steps, expected vs actual
 

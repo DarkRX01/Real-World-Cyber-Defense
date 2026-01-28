@@ -93,7 +93,7 @@ Now you have the best protection.
 ```
 
 ### "I found a bug/problem"
-Open [GitHub Issues](https://github.com/YOUR_USERNAME/cyber-defense-extension/issues) and describe what happened. We'll help!
+Open [GitHub Issues](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues) and describe what happened. We'll help!
 
 ---
 
@@ -121,6 +121,6 @@ You now have a working cybersecurity extension that:
 
 ---
 
-**Questions?** Don't be shy! Open a [Discussion](https://github.com/YOUR_USERNAME/cyber-defense-extension/discussions) on GitHub.
+**Questions?** Don't be shy! Open a [Discussion](https://github.com/DarkRX01/Real-World-Cyber-Defense/discussions) on GitHub.
 
 *Real-World Cyber Defense - Making security simple since 2026* 🚀
