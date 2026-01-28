@@ -4,57 +4,32 @@
 
 ### 🪟 Windows Users
 
-**Option 1: Direct EXE (Easiest)**
-- Download `CyberDefense.exe` (35.32 MB)
-- Double-click to run instantly
-- No installation required
+**Option 1: Pre-Built EXE (Fastest)**
+- **File**: `CyberDefense.exe` (35.32 MB in `/dist/` folder)
+- **How**: Navigate to `/dist/` folder in GitHub and download
+- **Run**: Double-click to launch instantly
+- **No installation needed** - works standalone
 
-**Option 2: Batch Installer**
-- Download `install-windows.bat`
-- Double-click to auto-install
-- Creates desktop shortcut
-- Auto-installs Python if needed
+**Option 2: Source Code + Auto-Installer (Recommended for most)**
+- **File**: `CyberDefense-source-v2.0.0.zip` (30 KB)
+- **Contains**: Python source + `install-windows.bat`
+- **How**: Download ZIP → Extract → Double-click `install-windows.bat`
+- **Auto-installs**: Python + PyQt5 + creates desktop shortcut
 
 ### 🐧 Linux Users
 
-**Download the Installer**
-- Download `install-linux.sh`
-- Run: `chmod +x install-linux.sh && ./install-linux.sh`
-- Supports: Ubuntu, Debian, Fedora, Arch Linux
-
----
-
-## 📦 What's Included?
-
-| File | Size | What It Does |
-|------|------|-------------|
-| **CyberDefense.exe** | 35.32 MB | Standalone app - just run it |
-| **install-windows.bat** | 2 KB | Auto-installs everything (Python + PyQt5) |
-| **install-linux.sh** | 4 KB | Auto-installs on any Linux distro |
-| **Source Code** | 300+ KB | All Python source code (.py files) |
-
----
-
-## 🚀 Getting Started
-
-### Windows
-1. Download `CyberDefense.exe`
-2. Double-click it
-3. Done! ✅
-
-### Linux
+**Option 1: Source Code + Installer**
+- **File**: `CyberDefense-source-v2.0.0.zip` (30 KB)
+- **Contains**: Python source + `install-linux.sh`
+- **How to Use**:
 ```bash
-wget https://github.com/DarkRX01/Real-World-Cyber-Defense/raw/main/install-linux.sh
+unzip CyberDefense-source-v2.0.0.zip
+cd CyberDefense-source-v2.0.0
 chmod +x install-linux.sh
 ./install-linux.sh
 ```
 
----
-
-## 💾 Source Code
-
-Developers can download or clone the full source:
-
+**Option 2: Clone from Git (For developers)**
 ```bash
 git clone https://github.com/DarkRX01/Real-World-Cyber-Defense.git
 cd Real-World-Cyber-Defense
@@ -63,14 +38,71 @@ python app_main.py
 
 ---
 
-## ✅ Verification
+## 📦 File Sizes & Contents
 
-All files are:
-- ✅ Virus-free (compiled from open source)
-- ✅ No telemetry or tracking
-- ✅ No internet connection required
-- ✅ Fully transparent and reviewable
+| File | Size | Best For | Contents |
+|------|------|----------|----------|
+| **CyberDefense-source-v2.0.0.zip** | 30 KB | Everyone | Python source + installers |
+| **CyberDefense.exe** (in `/dist/`) | 35.32 MB | Windows quick start | Pre-compiled Windows app |
+| **Source code on GitHub** | 300 KB | Developers | Full source + all docs |
 
 ---
 
-**Need help?** See [QUICK-START.md](../QUICK-START.md) or [TROUBLESHOOTING.md](../TROUBLESHOOTING.md)
+## 🚀 Which Should I Download?
+
+### "I just want it to work"
+→ **Windows**: Download `CyberDefense-source-v2.0.0.zip` and run `install-windows.bat`  
+→ **Linux**: Download `CyberDefense-source-v2.0.0.zip` and run `install-linux.sh`
+
+### "I want the fastest option"
+→ **Windows**: Go to `/dist/` folder and download `CyberDefense.exe` directly
+
+### "I want to build from source"
+→ Clone the repo: `git clone https://github.com/DarkRX01/Real-World-Cyber-Defense.git`
+
+---
+
+## ✅ What's Included?
+
+**In `CyberDefense-source-v2.0.0.zip`:**
+- ✅ `app_main.py` - Main application
+- ✅ `threat_engine.py` - Threat detection system
+- ✅ `background_service.py` - Background monitoring
+- ✅ `install-windows.bat` - Windows auto-installer
+- ✅ `install-linux.sh` - Linux auto-installer
+- ✅ `requirements.txt` - Dependencies
+- ✅ `README.md` - Documentation
+- ✅ `QUICK-START.md` - Easy setup guide
+- ✅ `TROUBLESHOOTING.md` - Problem solving
+- ✅ `SECURITY.md` - Privacy info
+- ✅ `LICENSE` - MIT license
+
+---
+
+## ✅ Verification
+
+All files are:
+- ✅ **Virus-free** - Compiled from open source
+- ✅ **No telemetry** - No tracking or data collection
+- ✅ **No internet required** - All scanning happens locally
+- ✅ **Fully transparent** - Source code available
+- ✅ **GitHub verified** - Hosted on official GitHub
+
+---
+
+## 💾 Total Download Sizes
+
+- **Lightweight option**: 30 KB (source code ZIP)
+- **Full EXE option**: 35.32 MB (pre-compiled Windows)
+- **GitHub repo**: 300 KB (includes all docs and source)
+
+**Choose the 30 KB ZIP for smallest download!** 📦
+
+---
+
+## 🆘 Having trouble?
+
+1. See [QUICK-START.md](QUICK-START.md) for easy setup
+2. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues
+3. Check [SETUP.md](SETUP.md) for detailed information
+4. Open an issue on GitHub for help
