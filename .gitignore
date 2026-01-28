@@ -1,8 +1,9 @@
 # Build artifacts
-dist/
 build/
 *.spec
 *.egg-info/
+# Allow the final EXE in dist/
+!dist/CyberDefense.exe
 
 # Python
 __pycache__/
