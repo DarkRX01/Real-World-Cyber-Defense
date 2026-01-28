@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Defense - Popup</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+    <div class="popup-container">
+        <!-- Header -->
+        <div class="header">
+            <img src="/icons/shield-128.png" alt="Shield Icon" class="icon">
+            <h1>Cyber Defense</h1>
+        </div>
+
+        <!-- Status Section -->
+        <div class="status-section">
+            <h2>Extension Status</h2>
+            <div class="status-item">
+                <span class="status-label">Threat Detection</span>
+                <span class="status-badge online">Active</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Tracker Detection</span>
+                <span id="trackerStatus" class="status-badge online">Enabled</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Download Scanner</span>
+                <span id="downloadStatus" class="status-badge online">Enabled</span>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <button id="toggleTrackers" class="action-btn toggle-btn" title="Toggle tracker detection on/off">
+                <span class="btn-icon">🔒</span>
+                <span class="btn-text">Toggle Trackers</span>
+            </button>
+            <button id="toggleDownloadScanning" class="action-btn toggle-btn" title="Toggle download scanning on/off">
+                <span class="btn-icon">⬇️</span>
+                <span class="btn-text">Toggle Downloads</span>
+            </button>
+            <button id="openSettings" class="action-btn" title="Open extension settings">
+                <span class="btn-icon">⚙️</span>
+                <span class="btn-text">Settings</span>
+            </button>
+        </div>
+
+        <!-- Recent Threats Section -->
+        <div class="threats-section">
+            <div class="threats-header">
+                <h3>Recent Threats Detected</h3>
+                <button id="clearLog" class="clear-btn" title="Clear threat log">Clear Log</button>
+            </div>
+            <div id="threatsList" class="threats-list">
+                <p class="no-threats">No threats detected yet.</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Privacy-first cyber defense • No data logging</p>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>

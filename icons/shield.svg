@@ -1,0 +1,54 @@
+<!-- Shield Icon (SVG) - Can be exported as PNG at different sizes
+     For production, use a proper image editor to export at:
+     16x16, 32x32, 48x48, 128x128
+     
+     This is an SVG template. To create actual PNG files:
+     1. Save this file as shield.svg
+     2. Open in image editor (Illustrator, Photoshop, Inkscape, etc.)
+     3. Export as PNG at each required size
+     
+     Or use online converter: https://convertio.co/svg-png/
+-->
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Outer shield shape -->
+  <path d="M 64 10 L 100 30 L 100 60 Q 100 95 64 118 Q 28 95 28 60 L 28 30 Z" 
+        fill="url(#shieldGradient)" 
+        filter="url(#shadow)" 
+        stroke="#5a67d8" 
+        stroke-width="2"/>
+  
+  <!-- Shield highlight (3D effect) -->
+  <path d="M 64 10 L 100 30 L 100 60 Q 100 95 64 118" 
+        fill="none" 
+        stroke="rgba(255,255,255,0.3)" 
+        stroke-width="2"/>
+  
+  <!-- Checkmark inside shield -->
+  <g transform="translate(64, 70) scale(0.8)">
+    <!-- Checkmark -->
+    <path d="M -20 5 L -5 20 L 25 -10" 
+          fill="none" 
+          stroke="white" 
+          stroke-width="4" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+  </g>
+  
+  <!-- Decorative circle for visual interest -->
+  <circle cx="64" cy="64" r="50" 
+          fill="none" 
+          stroke="rgba(255,255,255,0.1)" 
+          stroke-width="1" 
+          stroke-dasharray="5,5"/>
+</svg>

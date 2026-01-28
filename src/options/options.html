@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Defense - Settings</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+
+<body>
+    <div class="options-container">
+        <!-- Header -->
+        <div class="options-header">
+            <h1>Cyber Defense Settings</h1>
+            <p>Configure your security and privacy preferences</p>
+        </div>
+
+        <div class="options-content">
+            <!-- API Keys Section -->
+            <section class="settings-section">
+                <h2>API Keys & External Services</h2>
+                <p class="section-description">These API keys enable real-time threat detection. Get them free from the
+                    respective services.</p>
+
+                <div class="setting-group">
+                    <label for="apiKeyGoogle" class="setting-label">
+                        Google Safe Browsing API Key
+                        <span class="required">*</span>
+                    </label>
+                    <p class="setting-help">Required for malware/phishing detection. <a
+                            href="https://console.cloud.google.com/" target="_blank">Get API Key</a></p>
+                    <input type="password" id="apiKeyGoogle" placeholder="Enter your Google Safe Browsing API key"
+                        class="setting-input">
+                    <small class="security-note">🔒 Stored locally, never shared</small>
+                </div>
+
+                <div class="setting-group">
+                    <label for="apiKeyVirusTotal" class="setting-label">
+                        VirusTotal API Key
+                        <span class="optional">(Optional)</span>
+                    </label>
+                    <p class="setting-help">Additional URL scanning. <a href="https://www.virustotal.com/"
+                            target="_blank">Get API Key</a></p>
+                    <input type="password" id="apiKeyVirusTotal" placeholder="Enter your VirusTotal API key (optional)"
+                        class="setting-input">
+                    <small class="security-note">🔒 Stored locally, never shared</small>
+                </div>
+            </section>
+
+            <!-- Alert Settings -->
+            <section class="settings-section">
+                <h2>Alert & Blocking Preferences</h2>
+                <p class="section-description">Control how the extension responds to detected threats.</p>
+
+                <div class="setting-group">
+                    <label class="setting-label">Alert Level</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="alertLevel" value="low" class="radio-input">
+                            <span class="radio-text">Low</span>
+                            <span class="radio-desc">Warning notifications only</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="alertLevel" value="medium" class="radio-input">
+                            <span class="radio-text">Medium (Default)</span>
+                            <span class="radio-desc">Notifications + block high-severity threats</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="alertLevel" value="high" class="radio-input">
+                            <span class="radio-text">High</span>
+                            <span class="radio-desc">Block all detected threats automatically</span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Privacy Settings -->
+            <section class="settings-section">
+                <h2>Privacy & Tracker Detection</h2>
+                <p class="section-description">Protect yourself from third-party trackers and privacy-invasive services.
+                </p>
+
+                <div class="setting-group">
+                    <label class="setting-label">Privacy Mode</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="privacyMode" value="balanced" class="radio-input">
+                            <span class="radio-text">Balanced</span>
+                            <span class="radio-desc">Alert about trackers, allow by default</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="privacyMode" value="strict" class="radio-input">
+                            <span class="radio-text">Strict</span>
+                            <span class="radio-desc">Block all known tracking domains</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enableTrackerDetection" class="checkbox-input">
+                        <span class="checkbox-text">Enable Tracker Detection</span>
+                    </label>
+                    <p class="setting-help">Detect and optionally block common tracking services (Google Analytics,
+                        Facebook pixels, etc.)</p>
+                </div>
+            </section>
+
+            <!-- Download Security -->
+            <section class="settings-section">
+                <h2>Download Security</h2>
+                <p class="section-description">Scan downloads for suspicious files and patterns.</p>
+
+                <div class="setting-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enableDownloadScanning" class="checkbox-input">
+                        <span class="checkbox-text">Enable Download Scanning</span>
+                    </label>
+                    <p class="setting-help">Analyze downloaded files for malware signatures and suspicious patterns</p>
+                </div>
+            </section>
+
+            <!-- Logging Settings -->
+            <section class="settings-section">
+                <h2>Logging & Transparency</h2>
+                <p class="section-description">Control threat logging (all logs are ephemeral and cleared when browser
+                    closes).</p>
+
+                <div class="setting-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enableLogging" class="checkbox-input">
+                        <span class="checkbox-text">Enable Threat Logging</span>
+                    </label>
+                    <p class="setting-help">Log detected threats to extension popup. Logs are cleared when browser
+                        closes.</p>
+                </div>
+
+                <div class="log-info">
+                    <strong>📋 Privacy Note:</strong> Threat logs are stored only in memory and cleared when your
+                    browser closes. No data is sent to external servers or stored permanently.
+                </div>
+            </section>
+
+            <!-- Info Section -->
+            <section class="settings-section">
+                <h2>About This Extension</h2>
+                <div class="info-box">
+                    <p><strong>Version:</strong> 1.0.0</p>
+                    <p><strong>Purpose:</strong> Real-world functional cyber defense for everyday browsing</p>
+                    <p><strong>Privacy-First:</strong> No user accounts, no cloud storage, no user data collection</p>
+                    <p><strong>Open Source:</strong> Built with transparency and educational purposes in mind</p>
+                </div>
+            </section>
+
+            <!-- Save Status -->
+            <div class="save-status" id="saveStatus"></div>
+        </div>
+
+        <!-- Footer -->
+        <div class="options-footer">
+            <button id="saveButton" class="save-btn">Save Settings</button>
+            <button id="resetButton" class="reset-btn">Reset to Defaults</button>
+        </div>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+
+</html>
