@@ -12,6 +12,23 @@
 
 ---
 
+## 📥 DOWNLOAD NOW! (2 Seconds!)
+
+### 🪟 Windows Users
+**[⬇️ DOWNLOAD CyberDefense.exe (7.25 MB)](dist/CyberDefense.exe)** ⭐ CLICK HERE
+
+Double-click the downloaded file → **Done!** ✅
+
+### 🐧 Linux Users
+Copy & paste this one command:
+```bash
+git clone https://github.com/DarkRX01/Real-World-Cyber-Defense.git && cd Real-World-Cyber-Defense && python app_main.py
+```
+
+👉 **[See DOWNLOAD.md](DOWNLOAD.md)** for more details
+
+---
+
 ## 🎯 What Is It?
 
 **Cyber Defense** is a lightweight desktop application that protects your entire computer from digital threats:
