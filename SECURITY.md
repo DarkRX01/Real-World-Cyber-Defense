@@ -2,7 +2,7 @@
 
 ## 🔐 Security is Our Priority
 
-We take the security of the Real-World Cyber Defense extension seriously. This policy outlines how we handle security issues.
+We take the security of the Real-World Cyber Defense desktop application seriously. This policy outlines how we handle security issues.
 
 ---
 
@@ -22,17 +22,18 @@ We take the security of the Real-World Cyber Defense extension seriously. This p
 
 **Instead, please:**
 
-1. **Email**: security@cyberdefense.local
+1. **GitHub Security Advisories**: Use [GitHub's private vulnerability reporting](https://github.com/DarkRX01/Real-World-Cyber-Defense/security/advisories/new)
 2. **Include:**
    - Description of the vulnerability
    - Steps to reproduce
    - Potential impact
    - Suggested fix (if you have one)
+   - Your contact information (for follow-up)
 
 ### What to Expect
 
-- **Acknowledgment** within 24 hours
-- **Investigation** within 48 hours
+- **Acknowledgment** within 48 hours
+- **Investigation** within 7 days
 - **Update** on progress regularly
 - **Fix and release** as soon as possible
 - **Credit** in release notes (if you wish)
@@ -43,15 +44,15 @@ We take the security of the Real-World Cyber Defense extension seriously. This p
 
 ### For Users
 
-**To stay safe while using the extension:**
+**To stay safe while using Cyber Defense:**
 
-1. ✅ Keep Chrome updated to latest version
-2. ✅ Keep the extension updated
-3. ✅ Use strong, unique passwords
-4. ✅ Enable two-factor authentication
-5. ✅ Don't trust threat alerts alone - verify independently
-6. ✅ Report suspicious behavior
-7. ✅ Review extension permissions
+1. ✅ Keep the application updated to the latest version
+2. ✅ Download only from official sources (GitHub releases)
+3. ✅ Don't trust threat alerts alone - verify independently
+4. ✅ Report suspicious behavior
+5. ✅ Keep your operating system updated
+6. ✅ Use strong, unique passwords
+7. ✅ Enable Windows Firewall and Defender
 
 ### For Developers
 
@@ -70,58 +71,61 @@ We take the security of the Real-World Cyber Defense extension seriously. This p
 ## 🔍 Security Review Process
 
 ### Code Review
-- All changes are reviewed
+- All changes are reviewed via pull requests
 - Security implications considered
 - No hardcoded secrets allowed
 - Error handling validated
+- Automated linting with security checks (ruff)
 
 ### Vulnerability Assessment
-- Regular security audits planned
-- Known vulnerabilities tracked
-- Dependency checking
+- Regular dependency updates
+- Known vulnerabilities tracked via GitHub Dependabot
+- Dependency checking with pip-audit
 - Code quality analysis
 
 ### Testing
 - Security test scenarios included
 - Error handling validated
 - Input validation tested
-- API integration verified
+- Unit tests for all threat detection logic
 
 ---
 
-## 🚪 API Key Security
+## 🚪 Optional API Key Security
 
-### How We Handle Your API Key
+### How We Handle API Keys
 
-✅ **Stored Locally** - Only in your browser
-✅ **Never Logged** - Not logged to console
-✅ **Never Shared** - Not sent to third parties
+The application works fully offline without any API keys. Optional API keys enhance detection:
+
+✅ **Stored Locally** - Only on your computer in settings.json
+✅ **Never Logged** - Not written to logs
+✅ **Never Shared** - Not sent to third parties (except the API provider)
 ✅ **You Control It** - You provide your own key
-✅ **Optional** - Extension works without it (fallback mode)
+✅ **Optional** - App works without it (local-only mode)
 
-### How You Should Handle Your API Key
+### How You Should Handle API Keys
 
-1. ✅ Keep it secret
-2. ✅ Don't share it
-3. ✅ Don't commit it to GitHub
-4. ✅ Don't paste it in public chats
-5. ✅ Rotate it regularly
-6. ✅ Revoke it if leaked
+1. ✅ Keep them secret
+2. ✅ Don't share them
+3. ✅ Don't commit them to version control
+4. ✅ Don't paste them in public chats
+5. ✅ Rotate them regularly
+6. ✅ Revoke them if leaked
 
 ### If Your Key is Leaked
 
 1. **Immediately revoke it:**
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Go to the API provider's console
    - Delete the compromised key
    - Create a new key
 
-2. **Create a new one:**
-   - Enable "Safe Browsing API"
-   - Generate new API key
-   - Update extension settings
+2. **Update Cyber Defense:**
+   - Open Settings
+   - Enter the new API key
+   - Save changes
 
 3. **Monitor usage:**
-   - Check Google Cloud Console
+   - Check API provider's dashboard
    - Review API usage logs
    - Watch for unusual activity
 
@@ -139,34 +143,38 @@ We take the security of the Real-World Cyber Defense extension seriously. This p
 - Your device information
 - Analytics data
 - Usage statistics
+- Telemetry of any kind
 
 ### What Gets Shared
 
-The extension only sends to external services:
-- **Google Safe Browsing API** - Only the URL being scanned
-- **No other sharing** - Data is processed locally
+The application operates **100% locally** by default:
+- **No external API calls** unless you enable optional APIs
+- **Optional**: Google Safe Browsing API - Only the URL being scanned
+- **Optional**: VirusTotal API - Only file hashes being checked
+- **No other sharing** - All threat detection is processed locally
 
 ### What Is Stored
 
-- **Locally only** - API key in chrome.storage.sync
-- **Ephemeral** - Threat logs cleared on browser close
-- **No cloud** - Nothing sent to our servers (we don't have any)
-- **No persistence** - No data stored beyond session
+- **Settings**: `~/.cyber-defense/settings.json` - Your preferences
+- **Threat Log**: `~/.cyber-defense/threat_log.json` - Detected threats (last 500)
+- **Logs**: `~/.cyber-defense/logs/` - Application logs for debugging
+- **No cloud sync** - Everything stays on your computer
+- **You control deletion** - Delete the folder to remove all data
 
 ---
 
 ## 🛠️ Supported Versions
 
 ### Current Release
-- **Version 1.0.0** - Full security support
+- **Version 2.0.0** - Full security support ✅
 
 ### Older Versions
-- No previous versions to secure
+- **Version 1.x** - No longer supported, please upgrade
 
-### Future Versions
-- Latest version always supported
-- Previous version supported for 90 days
-- Older versions: no support
+### Support Policy
+- Latest version: Always supported
+- Previous major version: Supported for 6 months after new release
+- Older versions: No support - please upgrade
 
 ---
 
@@ -181,15 +189,20 @@ If you find one, report it privately per instructions above.
 ## 🔄 Security Updates
 
 ### Release Timeline
-- Security fixes: ASAP (same day if possible)
-- Updates: Automatic via Chrome Web Store
-- Notifications: Via GitHub releases
+- Security fixes: ASAP (within 48 hours)
+- Updates: Via GitHub releases
+- Notifications: Via GitHub releases and CHANGELOG.md
 
 ### Update Policy
 - All security fixes released immediately
 - No waiting for feature releases
 - All users notified of security updates
-- Details provided in release notes
+- Details provided in release notes and SECURITY.md
+
+### How to Update
+1. Download latest release from GitHub
+2. Run the installer (Windows) or install script (Linux)
+3. Restart the application
 
 ---
 
@@ -197,13 +210,14 @@ If you find one, report it privately per instructions above.
 
 ### Security Standards
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [Chrome Security Guidelines](https://developer.chrome.com/docs/extensions/mv3/security/)
-- [Google Safe Browsing](https://developers.google.com/safe-browsing)
+- [Python Security Best Practices](https://python.org/dev/security/)
+- [CWE/SANS Top 25](https://cwe.mitre.org/top25/)
 
 ### Tools Used
-- Chrome DevTools for testing
-- Security checklist for code review
-- Manual penetration testing
+- Ruff linter with security checks (flake8-bandit)
+- Pytest for security test cases
+- Manual code review
+- GitHub Dependabot for dependency monitoring
 
 ---
 

@@ -5,9 +5,11 @@ Main entry point and PyQt5 GUI.
 """
 
 import json
+import logging
 import os
 import sys
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from PyQt5.QtCore import Qt
@@ -55,6 +57,57 @@ def _config_dir() -> Path:
     return d
 
 
+def _logs_dir() -> Path:
+    d = _config_dir() / "logs"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def setup_logging() -> logging.Logger:
+    """Configure application logging with file rotation."""
+    logger = logging.getLogger("CyberDefense")
+    logger.setLevel(logging.DEBUG)
+    
+    # Prevent duplicate handlers
+    if logger.handlers:
+        return logger
+    
+    # Console handler (INFO level)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_format = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%H:%M:%S"
+    )
+    console_handler.setFormatter(console_format)
+    logger.addHandler(console_handler)
+    
+    # File handler (DEBUG level, rotating)
+    try:
+        log_file = _logs_dir() / "cyber-defense.log"
+        file_handler = RotatingFileHandler(
+            log_file,
+            maxBytes=5 * 1024 * 1024,  # 5 MB
+            backupCount=3,
+            encoding="utf-8"
+        )
+        file_handler.setLevel(logging.DEBUG)
+        file_format = logging.Formatter(
+            "%(asctime)s [%(levelname)s] %(name)s:%(lineno)d - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
+        file_handler.setFormatter(file_format)
+        logger.addHandler(file_handler)
+    except Exception as e:
+        logger.warning(f"Could not set up file logging: {e}")
+    
+    return logger
+
+
+# Initialize logger
+logger = setup_logging()
+
+
 def _settings_path() -> Path:
     return _config_dir() / "settings.json"
 
@@ -66,12 +119,15 @@ def _threat_log_path() -> Path:
 def load_settings() -> dict:
     p = _settings_path()
     if not p.exists():
+        logger.debug("No settings file found, using defaults")
         return default_settings()
     try:
         with open(p, "r", encoding="utf-8") as f:
             data = json.load(f)
+        logger.debug("Settings loaded successfully")
         return {**default_settings(), **data}
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Failed to load settings: {e}, using defaults")
         return default_settings()
 
 
@@ -91,8 +147,9 @@ def save_settings(s: dict) -> None:
     try:
         with open(_settings_path(), "w", encoding="utf-8") as f:
             json.dump(s, f, indent=2)
-    except Exception:
-        pass
+        logger.debug("Settings saved successfully")
+    except Exception as e:
+        logger.error(f"Failed to save settings: {e}")
 
 
 def load_threat_log() -> list:
@@ -112,8 +169,8 @@ def save_threat_log(log: list) -> None:
     try:
         with open(_threat_log_path(), "w", encoding="utf-8") as f:
             json.dump(log, f, indent=2)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Failed to save threat log: {e}")
 
 
 def sensitivity_from_string(s: str) -> Sensitivity:
@@ -129,6 +186,7 @@ def sensitivity_from_string(s: str) -> Sensitivity:
 class CyberDefenseApp(QMainWindow):
     def __init__(self):
         super().__init__()
+        logger.info("Initializing Cyber Defense application")
         self.setWindowTitle("Cyber Defense - Real-World Security")
         self.setMinimumSize(720, 520)
         self.resize(800, 600)
@@ -310,6 +368,7 @@ class CyberDefenseApp(QMainWindow):
         self.tabs.setCurrentIndex(3)
 
     def _quit(self):
+        logger.info("Shutting down Cyber Defense")
         self._service.stop()
         save_settings(self.settings)
         save_threat_log(self.threat_log)
@@ -374,6 +433,7 @@ class CyberDefenseApp(QMainWindow):
     def _on_threat_detected(self, result: ThreatResult, url: str):
         if self._paused:
             return
+        logger.info(f"Threat detected: {result.threat_type} - {url[:50]}... (confidence: {result.confidence}%)")
         entry = {
             "time": datetime.now().isoformat(),
             "type": result.threat_type,
@@ -477,11 +537,21 @@ class CyberDefenseApp(QMainWindow):
 
 
 def main():
+    logger.info("Starting Cyber Defense v2.0.0")
+    logger.info(f"Platform: {sys.platform}")
+    logger.info(f"Python: {sys.version}")
+    
     app = QApplication(sys.argv)
     app.setApplicationName("Cyber Defense")
-    win = CyberDefenseApp()
-    win.show()
-    return app.exec_()
+    
+    try:
+        win = CyberDefenseApp()
+        win.show()
+        logger.info("Application window shown")
+        return app.exec_()
+    except Exception as e:
+        logger.critical(f"Fatal error: {e}", exc_info=True)
+        raise
 
 
 if __name__ == "__main__":
