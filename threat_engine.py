@@ -141,10 +141,28 @@ def check_tracker(url: str) -> Optional[ThreatResult]:
     return None
 
 
+# Known malicious/phishing domains and patterns
+KNOWN_MALICIOUS_DOMAINS = frozenset([
+    "scandiflirt.com", "bit.ly", "tinyurl.com", "t.co",  # URL shorteners often used in phishing
+    "grabify.link", "iplogger.org", "blasze.tk",  # IP loggers
+])
+
+# Suspicious URL patterns that indicate phishing
+SUSPICIOUS_PATTERNS = [
+    r"login.*verify",
+    r"account.*suspend",
+    r"secure.*update",
+    r"confirm.*identity",
+    r"\d{6,}\.com",  # Random number domains
+    r"[a-z0-9]{32,}",  # Long random strings (like in your example)
+    r"pt1=.*pt2=.*sub",  # Tracking parameters common in scams
+]
+
+
 def get_phishing_confidence(url: str, sensitivity: Sensitivity = Sensitivity.MEDIUM) -> ThreatResult:
     """
-    Heuristic phishing check. Returns ThreatResult with confidence 0-100.
-    Does NOT call any external API.
+    Advanced phishing detection with multiple heuristics.
+    Detects real-world phishing, scams, and malicious URLs.
     """
     url = _normalize_url(url)
     if not url:
@@ -153,48 +171,82 @@ def get_phishing_confidence(url: str, sensitivity: Sensitivity = Sensitivity.MED
     host = _extract_host(url)
     score = 0
     details = {}
+    low = (url or "").lower()
 
-    # IP-based URL
-    if is_ip_url(url):
+    # Check against known malicious domains
+    if host:
+        for bad_domain in KNOWN_MALICIOUS_DOMAINS:
+            if bad_domain in host or host.endswith(bad_domain):
+                score += 70
+                details["known_malicious"] = bad_domain
+                break
+
+    # Check for suspicious patterns in URL
+    for pattern in SUSPICIOUS_PATTERNS:
+        if re.search(pattern, low):
+            score += 30
+            details["suspicious_pattern"] = pattern
+            break
+
+    # Long random strings (common in tracking/scam URLs)
+    if re.search(r"[a-f0-9]{30,}", low):  # Long hex strings
+        score += 35
+        details["tracking_hash"] = True
+
+    # Multiple tracking parameters (pt1, pt2, sub1, sub2, etc.)
+    tracking_params = ["pt1", "pt2", "pt3", "sub1", "sub2", "sub3", "sub4", "sub5", "pe", "pi", "bb"]
+    param_count = sum(1 for param in tracking_params if param in low)
+    if param_count >= 3:
         score += 40
+        details["excessive_tracking"] = param_count
+
+    # IP-based URL (often malicious)
+    if is_ip_url(url):
+        score += 45
         details["ip_based"] = True
 
     # Suspicious TLD
-    low = (url or "").lower()
     if host:
         for tld in SUSPICIOUS_TLDS:
             if host.endswith(tld):
-                score += 25
+                score += 30
                 details["suspicious_tld"] = tld
                 break
 
-    # Lookalike domains
-    for pattern, _ in LOOKALIKE_PATTERNS:
+    # Lookalike domains (typosquatting)
+    for pattern, legit in LOOKALIKE_PATTERNS:
         if re.search(pattern, low):
-            score += 50
-            details["lookalike"] = pattern
+            score += 60
+            details["lookalike"] = legit
             break
 
-    # Phishing keywords in path/query
+    # Phishing keywords in URL
     for kw in PHISHING_KEYWORDS:
         if kw in low:
-            score += 15
-            details["keyword"] = kw
+            score += 20
+            details["phishing_keyword"] = kw
             break
 
-    # Excessive encoding
+    # Excessive URL encoding
     if "%" in url and url.count("%") > 5:
-        score += 20
-        details["encoding"] = True
+        score += 25
+        details["excessive_encoding"] = True
 
-    # No HTTPS (only if we have scheme)
+    # No HTTPS (insecure)
     try:
         p = urlparse(url)
         if p.scheme == "http":
-            score += 30
+            score += 35
             details["no_https"] = True
     except Exception:
         pass
+
+    # Suspicious port numbers
+    if host and ":" in host:
+        port = host.split(":")[-1]
+        if port.isdigit() and int(port) not in [80, 443, 8080]:
+            score += 25
+            details["suspicious_port"] = port
 
     # Cap and scale by sensitivity
     score = min(100, score)
