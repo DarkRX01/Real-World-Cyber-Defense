@@ -1,10 +1,24 @@
 # 🛡️ Cyber Defense - Real-World Security
 
-A modern, powerful desktop application for real-time threat detection and security monitoring on Windows.
+A modern desktop application for learning about threat detection and security monitoring on Windows.
 
 ![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![Status](https://img.shields.io/badge/status-Educational-yellow)
+
+## ⚠️ Important Disclaimer
+
+**This is an educational/demonstration project, NOT production-grade security software.**
+
+- ❌ No kernel-level protection
+- ❌ No real-time file system monitoring
+- ❌ Basic detection (won't catch packed/encrypted malware)
+- ❌ Not a replacement for Windows Defender or real antivirus
+
+**For real security:** Use Windows Defender + Malwarebytes + regular updates + backups.
+
+**See [SECURITY-ROADMAP.md](SECURITY-ROADMAP.md) for honest limitations and what real AV requires.**
 
 ## ✨ Features
 
