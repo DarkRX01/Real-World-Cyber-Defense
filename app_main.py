@@ -190,162 +190,6 @@ class CyberDefenseApp(QMainWindow):
         self.setWindowTitle("Cyber Defense - Real-World Security")
         self.setMinimumSize(900, 650)
         self.resize(1000, 700)
-        
-        # Modern dark theme stylesheet
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #1a1d2e;
-            }
-            QWidget {
-                background-color: #1a1d2e;
-                color: #e0e6f0;
-                font-family: 'Segoe UI', Arial, sans-serif;
-                font-size: 10pt;
-            }
-            QLabel {
-                color: #e0e6f0;
-                background-color: transparent;
-            }
-            QPushButton {
-                background-color: #2d3250;
-                color: #ffffff;
-                border: 2px solid #424769;
-                border-radius: 8px;
-                padding: 10px 20px;
-                font-weight: 600;
-                font-size: 10pt;
-            }
-            QPushButton:hover {
-                background-color: #424769;
-                border-color: #676f9d;
-            }
-            QPushButton:pressed {
-                background-color: #676f9d;
-            }
-            QLineEdit, QPlainTextEdit {
-                background-color: #252842;
-                color: #e0e6f0;
-                border: 2px solid #424769;
-                border-radius: 6px;
-                padding: 8px;
-                selection-background-color: #424769;
-            }
-            QLineEdit:focus, QPlainTextEdit:focus {
-                border-color: #7c83fd;
-            }
-            QComboBox {
-                background-color: #252842;
-                color: #e0e6f0;
-                border: 2px solid #424769;
-                border-radius: 6px;
-                padding: 6px;
-            }
-            QComboBox::drop-down {
-                border: none;
-                background-color: #424769;
-                border-radius: 4px;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 4px solid transparent;
-                border-right: 4px solid transparent;
-                border-top: 6px solid #e0e6f0;
-                margin-right: 8px;
-            }
-            QCheckBox {
-                color: #e0e6f0;
-                spacing: 8px;
-            }
-            QCheckBox::indicator {
-                width: 18px;
-                height: 18px;
-                border: 2px solid #424769;
-                border-radius: 4px;
-                background-color: #252842;
-            }
-            QCheckBox::indicator:checked {
-                background-color: #7c83fd;
-                border-color: #7c83fd;
-            }
-            QCheckBox::indicator:checked:after {
-                content: '✓';
-                color: white;
-            }
-            QTabWidget::pane {
-                border: 2px solid #424769;
-                border-radius: 8px;
-                background-color: #252842;
-                top: -2px;
-            }
-            QTabBar::tab {
-                background-color: #2d3250;
-                color: #a0a8c0;
-                border: 2px solid #424769;
-                border-bottom: none;
-                border-top-left-radius: 6px;
-                border-top-right-radius: 6px;
-                padding: 10px 20px;
-                margin-right: 4px;
-                font-weight: 600;
-            }
-            QTabBar::tab:selected {
-                background-color: #252842;
-                color: #7c83fd;
-                border-bottom: 2px solid #252842;
-            }
-            QTabBar::tab:hover:!selected {
-                background-color: #424769;
-                color: #e0e6f0;
-            }
-            QTableWidget {
-                background-color: #252842;
-                color: #e0e6f0;
-                border: 2px solid #424769;
-                border-radius: 6px;
-                gridline-color: #424769;
-            }
-            QTableWidget::item {
-                padding: 8px;
-                border-bottom: 1px solid #2d3250;
-            }
-            QTableWidget::item:selected {
-                background-color: #424769;
-            }
-            QHeaderView::section {
-                background-color: #2d3250;
-                color: #a0a8c0;
-                border: none;
-                padding: 10px;
-                font-weight: 700;
-                border-bottom: 2px solid #424769;
-            }
-            QGroupBox {
-                border: 2px solid #424769;
-                border-radius: 8px;
-                margin-top: 12px;
-                padding-top: 16px;
-                font-weight: 600;
-                color: #7c83fd;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 12px;
-                padding: 0 8px;
-                background-color: #1a1d2e;
-            }
-            QScrollBar:vertical {
-                background-color: #252842;
-                width: 12px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical {
-                background-color: #424769;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background-color: #676f9d;
-            }
-        """)
 
         self.settings = load_settings()
         self.threat_log: list = load_threat_log()
@@ -365,151 +209,178 @@ class CyberDefenseApp(QMainWindow):
         self._refresh_stats()
         self._start_monitoring()
 
+    def _create_stat_card(self, icon: str, title: str, gradient: str, glow: str) -> QWidget:
+        """Create a modern stat card with gradient background."""
+        card = QWidget()
+        card.setStyleSheet(f"""
+            QWidget {{
+                background: {gradient};
+                border-radius: 16px;
+                padding: 20px;
+            }}
+        """)
+        card.setMinimumWidth(180)
+        card.setMinimumHeight(140)
+        
+        card_layout = QVBoxLayout(card)
+        card_layout.setSpacing(12)
+        
+        # Icon and title row
+        header_layout = QHBoxLayout()
+        
+        icon_label = QLabel(icon)
+        icon_label.setStyleSheet("""
+            font-size: 28px;
+            background: transparent;
+        """)
+        header_layout.addWidget(icon_label)
+        header_layout.addStretch()
+        
+        card_layout.addLayout(header_layout)
+        
+        # Title
+        title_label = QLabel(title)
+        title_label.setStyleSheet("""
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            background: transparent;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        """)
+        card_layout.addWidget(title_label)
+        
+        card_layout.addStretch()
+        
+        return card
+    
+    def _create_stat_number(self, value: str, color: str) -> QLabel:
+        """Create a stat number label."""
+        label = QLabel(value)
+        label.setStyleSheet(f"""
+            font-size: 42px;
+            font-weight: bold;
+            color: {color};
+            background: transparent;
+        """)
+        return label
+    
     def _build_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
-        layout.setSpacing(12)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+        layout.setContentsMargins(24, 24, 24, 24)
 
-        # Header with gradient effect
-        header_widget = QWidget()
-        header_widget.setStyleSheet("""
+        # Top bar with header and controls
+        top_bar = QWidget()
+        top_bar.setStyleSheet("""
             background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
-                                       stop:0 #7c83fd, stop:1 #a855f7);
-            border-radius: 12px;
-            padding: 20px;
+                                       stop:0 #6366f1, stop:0.5 #8b5cf6, stop:1 #d946ef);
+            border-radius: 16px;
+            padding: 24px;
         """)
-        header_layout = QVBoxLayout(header_widget)
+        top_layout = QHBoxLayout(top_bar)
         
-        header = QLabel("🛡️ Cyber Defense Dashboard")
+        # Left side - Title and subtitle
+        title_container = QWidget()
+        title_container.setStyleSheet("background: transparent;")
+        title_layout = QVBoxLayout(title_container)
+        title_layout.setSpacing(4)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        
+        header = QLabel("🛡️ Cyber Defense")
         header.setStyleSheet("""
-            font-size: 26px; 
+            font-size: 32px; 
             font-weight: bold; 
             color: #ffffff;
             background: transparent;
         """)
-        header_layout.addWidget(header)
+        title_layout.addWidget(header)
         
-        subheader = QLabel("Real-time threat detection and security monitoring")
+        subheader = QLabel("Real-time threat detection & security monitoring")
         subheader.setStyleSheet("""
-            font-size: 12px; 
-            color: #e0e6f0;
+            font-size: 13px; 
+            color: rgba(255, 255, 255, 0.85);
             background: transparent;
-            margin-top: 4px;
         """)
-        header_layout.addWidget(subheader)
+        title_layout.addWidget(subheader)
         
-        layout.addWidget(header_widget)
-
-        # Status bar with modern design
-        status_widget = QWidget()
-        status_widget.setStyleSheet("""
-            background-color: #252842;
-            border-radius: 10px;
-            padding: 12px;
+        top_layout.addWidget(title_container)
+        top_layout.addStretch()
+        
+        # Right side - Status badge
+        status_badge = QWidget()
+        status_badge.setStyleSheet("""
+            background-color: rgba(74, 222, 128, 0.15);
+            border: 2px solid #4ade80;
+            border-radius: 12px;
+            padding: 12px 20px;
         """)
-        status_layout = QHBoxLayout(status_widget)
+        status_badge_layout = QHBoxLayout(status_badge)
+        status_badge_layout.setSpacing(8)
         
-        self.status_label = QLabel("🔒 Monitoring Active")
+        status_icon = QLabel("✓")
+        status_icon.setStyleSheet("""
+            font-size: 18px;
+            font-weight: bold;
+            color: #4ade80;
+            background: transparent;
+        """)
+        status_badge_layout.addWidget(status_icon)
+        
+        self.status_label = QLabel("ACTIVE")
         self.status_label.setStyleSheet("""
-            font-size: 14px; 
+            font-size: 13px; 
             color: #4ade80; 
-            font-weight: 600;
+            font-weight: 700;
             background: transparent;
+            letter-spacing: 1px;
         """)
-        status_layout.addWidget(self.status_label)
-        status_layout.addStretch()
+        status_badge_layout.addWidget(self.status_label)
         
-        layout.addWidget(status_widget)
+        top_layout.addWidget(status_badge)
+        
+        layout.addWidget(top_bar)
 
-        # Stats row with modern cards
+        # Stats cards with modern gradient design
         stats_container = QWidget()
         stats_layout = QHBoxLayout(stats_container)
-        stats_layout.setSpacing(16)
+        stats_layout.setSpacing(20)
         
-        # Threats card
-        threats_card = QWidget()
-        threats_card.setStyleSheet("""
-            background-color: #2d1f2f;
-            border: 2px solid #ef4444;
-            border-radius: 12px;
-            padding: 16px;
-        """)
-        threats_layout = QVBoxLayout(threats_card)
-        threats_label = QLabel("🔴 Threats")
-        threats_label.setStyleSheet("""
-            font-size: 12px; 
-            color: #fca5a5; 
-            font-weight: 600;
-            background: transparent;
-        """)
-        self.lbl_threats = QLabel("0")
-        self.lbl_threats.setStyleSheet("""
-            font-size: 32px; 
-            font-weight: bold; 
-            color: #ef4444;
-            background: transparent;
-        """)
-        threats_layout.addWidget(threats_label)
-        threats_layout.addWidget(self.lbl_threats)
+        # Threats card - Red gradient
+        threats_card = self._create_stat_card(
+            icon="🔥",
+            title="Threats Blocked",
+            gradient="qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #dc2626, stop:1 #991b1b)",
+            glow="rgba(239, 68, 68, 0.3)"
+        )
+        self.lbl_threats = self._create_stat_number("0", "#ffffff")
+        threats_card.layout().addWidget(self.lbl_threats)
         stats_layout.addWidget(threats_card)
         
-        # Trackers card
-        trackers_card = QWidget()
-        trackers_card.setStyleSheet("""
-            background-color: #2d2a1f;
-            border: 2px solid #f59e0b;
-            border-radius: 12px;
-            padding: 16px;
-        """)
-        trackers_layout = QVBoxLayout(trackers_card)
-        trackers_label = QLabel("🚫 Trackers")
-        trackers_label.setStyleSheet("""
-            font-size: 12px; 
-            color: #fcd34d; 
-            font-weight: 600;
-            background: transparent;
-        """)
-        self.lbl_trackers = QLabel("0")
-        self.lbl_trackers.setStyleSheet("""
-            font-size: 32px; 
-            font-weight: bold; 
-            color: #f59e0b;
-            background: transparent;
-        """)
-        trackers_layout.addWidget(trackers_label)
-        trackers_layout.addWidget(self.lbl_trackers)
+        # Trackers card - Orange gradient
+        trackers_card = self._create_stat_card(
+            icon="🚨",
+            title="Trackers Found",
+            gradient="qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #f59e0b, stop:1 #d97706)",
+            glow="rgba(245, 158, 11, 0.3)"
+        )
+        self.lbl_trackers = self._create_stat_number("0", "#ffffff")
+        trackers_card.layout().addWidget(self.lbl_trackers)
         stats_layout.addWidget(trackers_card)
         
-        # Phishing card
-        phishing_card = QWidget()
-        phishing_card.setStyleSheet("""
-            background-color: #1f2d2f;
-            border: 2px solid #06b6d4;
-            border-radius: 12px;
-            padding: 16px;
-        """)
-        phishing_layout = QVBoxLayout(phishing_card)
-        phishing_label = QLabel("🎣 Phishing")
-        phishing_label.setStyleSheet("""
-            font-size: 12px; 
-            color: #67e8f9; 
-            font-weight: 600;
-            background: transparent;
-        """)
-        self.lbl_phishing = QLabel("0")
-        self.lbl_phishing.setStyleSheet("""
-            font-size: 32px; 
-            font-weight: bold; 
-            color: #06b6d4;
-            background: transparent;
-        """)
-        phishing_layout.addWidget(phishing_label)
-        phishing_layout.addWidget(self.lbl_phishing)
+        # Phishing card - Cyan gradient
+        phishing_card = self._create_stat_card(
+            icon="🎯",
+            title="Phishing Detected",
+            gradient="qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #06b6d4, stop:1 #0891b2)",
+            glow="rgba(6, 182, 212, 0.3)"
+        )
+        self.lbl_phishing = self._create_stat_number("0", "#ffffff")
+        phishing_card.layout().addWidget(self.lbl_phishing)
         stats_layout.addWidget(phishing_card)
         
-        stats_layout.addStretch()
         layout.addWidget(stats_container)
 
         # Tabs
@@ -699,22 +570,38 @@ class CyberDefenseApp(QMainWindow):
         self._paused = not self._paused
         if self._paused:
             self._service.stop()
-            self.status_label.setText("⏸️ Monitoring Paused")
+            self.status_label.setText("PAUSED")
             self.status_label.setStyleSheet("""
-                font-size: 14px; 
+                font-size: 13px; 
                 color: #fbbf24; 
-                font-weight: 600;
+                font-weight: 700;
                 background: transparent;
+                letter-spacing: 1px;
+            """)
+            # Update status badge parent background
+            self.status_label.parent().setStyleSheet("""
+                background-color: rgba(251, 191, 36, 0.15);
+                border: 2px solid #fbbf24;
+                border-radius: 12px;
+                padding: 12px 20px;
             """)
             self.btn_pause.setText("▶️ Resume")
         else:
             self._service.start()
-            self.status_label.setText("🔒 Monitoring Active")
+            self.status_label.setText("ACTIVE")
             self.status_label.setStyleSheet("""
-                font-size: 14px; 
+                font-size: 13px; 
                 color: #4ade80; 
-                font-weight: 600;
+                font-weight: 700;
                 background: transparent;
+                letter-spacing: 1px;
+            """)
+            # Update status badge parent background
+            self.status_label.parent().setStyleSheet("""
+                background-color: rgba(74, 222, 128, 0.15);
+                border: 2px solid #4ade80;
+                border-radius: 12px;
+                padding: 12px 20px;
             """)
             self.btn_pause.setText("⏸️ Pause")
 
@@ -831,6 +718,213 @@ def main():
     
     app = QApplication(sys.argv)
     app.setApplicationName("Cyber Defense")
+    
+    # Apply modern dark theme to entire application
+    app.setStyle("Fusion")
+    app.setStyleSheet("""
+        * {
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        QMainWindow, QWidget {
+            background-color: #1a1d2e;
+            color: #e0e6f0;
+        }
+        QLabel {
+            color: #e0e6f0;
+            background-color: transparent;
+        }
+        QPushButton {
+            background-color: #2d3250;
+            color: #ffffff;
+            border: 2px solid #424769;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 600;
+            font-size: 10pt;
+        }
+        QPushButton:hover {
+            background-color: #424769;
+            border-color: #676f9d;
+        }
+        QPushButton:pressed {
+            background-color: #676f9d;
+        }
+        QLineEdit, QPlainTextEdit, QTextEdit {
+            background-color: #252842;
+            color: #e0e6f0;
+            border: 2px solid #424769;
+            border-radius: 6px;
+            padding: 8px;
+            selection-background-color: #424769;
+        }
+        QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus {
+            border-color: #7c83fd;
+        }
+        QComboBox {
+            background-color: #252842;
+            color: #e0e6f0;
+            border: 2px solid #424769;
+            border-radius: 6px;
+            padding: 6px;
+            min-height: 25px;
+        }
+        QComboBox:hover {
+            border-color: #7c83fd;
+        }
+        QComboBox::drop-down {
+            border: none;
+            background-color: #424769;
+            width: 30px;
+            border-top-right-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+        QComboBox::down-arrow {
+            image: none;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid #e0e6f0;
+            margin-right: 10px;
+        }
+        QComboBox QAbstractItemView {
+            background-color: #252842;
+            color: #e0e6f0;
+            border: 2px solid #424769;
+            selection-background-color: #424769;
+        }
+        QCheckBox {
+            color: #e0e6f0;
+            spacing: 8px;
+            background-color: transparent;
+        }
+        QCheckBox::indicator {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #424769;
+            border-radius: 4px;
+            background-color: #252842;
+        }
+        QCheckBox::indicator:hover {
+            border-color: #7c83fd;
+        }
+        QCheckBox::indicator:checked {
+            background-color: #7c83fd;
+            border-color: #7c83fd;
+            image: url(none);
+        }
+        QTabWidget::pane {
+            border: 2px solid #424769;
+            border-radius: 8px;
+            background-color: #252842;
+            top: -2px;
+        }
+        QTabBar::tab {
+            background-color: #2d3250;
+            color: #a0a8c0;
+            border: 2px solid #424769;
+            border-bottom: none;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            padding: 10px 20px;
+            margin-right: 4px;
+            font-weight: 600;
+            min-width: 80px;
+        }
+        QTabBar::tab:selected {
+            background-color: #252842;
+            color: #7c83fd;
+            border-bottom: 2px solid #252842;
+        }
+        QTabBar::tab:hover:!selected {
+            background-color: #424769;
+            color: #e0e6f0;
+        }
+        QTableWidget {
+            background-color: #252842;
+            color: #e0e6f0;
+            border: 2px solid #424769;
+            border-radius: 6px;
+            gridline-color: #424769;
+            alternate-background-color: #2d3250;
+        }
+        QTableWidget::item {
+            padding: 8px;
+            border-bottom: 1px solid #2d3250;
+        }
+        QTableWidget::item:selected {
+            background-color: #424769;
+            color: #ffffff;
+        }
+        QTableWidget::item:hover {
+            background-color: #2d3250;
+        }
+        QHeaderView::section {
+            background-color: #2d3250;
+            color: #a0a8c0;
+            border: none;
+            padding: 10px;
+            font-weight: 700;
+            border-bottom: 2px solid #424769;
+        }
+        QHeaderView::section:hover {
+            background-color: #424769;
+        }
+        QGroupBox {
+            border: 2px solid #424769;
+            border-radius: 8px;
+            margin-top: 12px;
+            padding-top: 16px;
+            font-weight: 600;
+            color: #7c83fd;
+            background-color: transparent;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            left: 12px;
+            padding: 0 8px;
+            background-color: #1a1d2e;
+        }
+        QScrollBar:vertical {
+            background-color: #252842;
+            width: 12px;
+            border-radius: 6px;
+        }
+        QScrollBar::handle:vertical {
+            background-color: #424769;
+            border-radius: 6px;
+            min-height: 30px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background-color: #676f9d;
+        }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            height: 0px;
+        }
+        QScrollBar:horizontal {
+            background-color: #252842;
+            height: 12px;
+            border-radius: 6px;
+        }
+        QScrollBar::handle:horizontal {
+            background-color: #424769;
+            border-radius: 6px;
+            min-width: 30px;
+        }
+        QScrollBar::handle:horizontal:hover {
+            background-color: #676f9d;
+        }
+        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+            width: 0px;
+        }
+        QMessageBox {
+            background-color: #1a1d2e;
+        }
+        QMessageBox QLabel {
+            color: #e0e6f0;
+        }
+        QMessageBox QPushButton {
+            min-width: 80px;
+        }
+    """)
     
     try:
         win = CyberDefenseApp()
