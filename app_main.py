@@ -190,6 +190,11 @@ class CyberDefenseApp(QMainWindow):
         self.setWindowTitle("Cyber Defense - Real-World Security")
         self.setMinimumSize(900, 650)
         self.resize(1000, 700)
+        
+        # Force window to show on top and centered
+        self.setWindowState(self.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
+        self.raise_()
+        self.activateWindow()
 
         self.settings = load_settings()
         self.threat_log: list = load_threat_log()
@@ -719,8 +724,12 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("Cyber Defense")
     
-    # Apply modern dark theme to entire application
-    app.setStyle("Fusion")
+    # Apply modern dark theme to entire application  
+    try:
+        app.setStyle("Fusion")
+    except Exception as e:
+        logger.warning(f"Could not set Fusion style: {e}")
+        # Continue anyway with default style
     app.setStyleSheet("""
         * {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -927,13 +936,29 @@ def main():
     """)
     
     try:
+        logger.info("Creating main window...")
         win = CyberDefenseApp()
+        
+        # Center the window on screen
+        from PyQt5.QtWidgets import QDesktopWidget
+        center = QDesktopWidget().availableGeometry().center()
+        frame = win.frameGeometry()
+        frame.moveCenter(center)
+        win.move(frame.topLeft())
+        
+        # Show window and bring to front
         win.show()
+        win.raise_()
+        win.activateWindow()
+        
         logger.info("Application window shown")
         return app.exec_()
     except Exception as e:
         logger.critical(f"Fatal error: {e}", exc_info=True)
-        raise
+        # Show error dialog
+        from PyQt5.QtWidgets import QMessageBox
+        QMessageBox.critical(None, "Error", f"Failed to start application:\n\n{str(e)}")
+        return 1
 
 
 if __name__ == "__main__":
