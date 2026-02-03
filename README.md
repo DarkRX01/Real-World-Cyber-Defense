@@ -1,204 +1,143 @@
-# 🛡️ Cyber Defense - Real-World Security
+# 🛡️ Cyber Defense – Real-World Security
 
-A modern desktop application for learning about threat detection and security monitoring on Windows.
+A **user-friendly** desktop app for threat detection and security monitoring on Windows (and Linux from source). Protects you from phishing, trackers, and suspicious downloads with a simple tray icon and clear notifications.
 
 ![Version](https://img.shields.io/badge/version-2.0.0-blue)
-![Platform](https://img.shields.io/badge/platform-Windows-blue)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/status-Educational-yellow)
-
-## ⚠️ Important Disclaimer
-
-**This is an educational/demonstration project, NOT production-grade security software.**
-
-- ❌ No kernel-level protection
-- ❌ No real-time file system monitoring
-- ❌ Basic detection (won't catch packed/encrypted malware)
-- ❌ Not a replacement for Windows Defender or real antivirus
-
-**For real security:** Use Windows Defender + Malwarebytes + regular updates + backups.
-
-**See [SECURITY-ROADMAP.md](SECURITY-ROADMAP.md) for honest limitations and what real AV requires.**
-
-## ✨ Features
-
-- 🔥 **Real-time Threat Detection** - Automatically detect and block threats
-- 🚨 **Tracker Blocking** - Block known tracking domains and scripts
-- 🎯 **Phishing Detection** - Identify suspicious URLs and phishing attempts
-- 📋 **Clipboard Monitoring** - Scan URLs copied to your clipboard
-- 🎨 **Modern GUI** - Beautiful, colorful dashboard with gradient cards
-- 🌙 **Dark Theme** - Easy on the eyes with a professional dark interface
-- 💾 **System Tray** - Runs quietly in the background
-- 📊 **Statistics Dashboard** - Track threats, trackers, and phishing attempts
-
-## 📥 Download & Installation
-
-### Option 1: Download Pre-built Release (Easiest)
-
-1. Go to [Releases](../../releases)
-2. Download **`CyberDefense-Windows-Portable.zip`**
-3. Extract the **entire ZIP file** to a folder
-4. Run `CyberDefense.exe` from the extracted folder
-
-> ⚠️ **IMPORTANT:** Do NOT move just the `.exe` file! Keep all files together.
-
-### Option 2: Build from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/DarkRX01/Real-World-Cyber-Defense.git
-cd Real-World-Cyber-Defense
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run from source
-python app_main.py
-
-# OR build executable
-python build-final.py
-```
-
-## 🚀 Quick Start
-
-1. **First Run**
-   - Double-click `CyberDefense.exe`
-   - If Windows SmartScreen appears, click "More info" → "Run anyway"
-   - The app will appear with a modern gradient interface
-
-2. **Using the App**
-   - The app monitors your clipboard automatically
-   - Copy any URL and it will be scanned
-   - Threats are shown in the dashboard with color-coded cards
-   - Click the system tray icon to show/hide the window
-
-3. **Settings**
-   - Go to the **Settings** tab
-   - Adjust sensitivity: Low, Medium, High, or Extreme
-   - Enable/disable specific features
-   - Click "Save settings" to apply
-
-## 🎨 Interface Preview
-
-The app features a modern, colorful design:
-
-- **🔥 Red Gradient Card** - Threats Blocked
-- **🚨 Orange Gradient Card** - Trackers Found  
-- **🎯 Cyan Gradient Card** - Phishing Detected
-- **💜 Purple Gradient Header** - Main navigation
-- **✓ Green Status Badge** - Active monitoring indicator
-
-## 🛠️ For Developers
-
-### Project Structure
-
-```
-cyber-defense-extension/
-├── app_main.py              # Main application entry point
-├── threat_engine.py         # Threat detection logic
-├── background_service.py    # Background monitoring service
-├── build-final.py          # Build script for creating EXE
-├── package-for-release.py  # Create distributable ZIP
-├── requirements.txt        # Python dependencies
-├── CyberDefense.spec       # PyInstaller configuration
-└── tests/                  # Unit tests
-```
-
-### Build Commands
-
-```bash
-# Test dependencies
-python test-dependencies.py
-
-# Build production executable
-python build-final.py
-
-# Create release package
-python package-for-release.py
-```
-
-### Testing
-
-```bash
-# Run all tests
-pytest tests/
-
-# Run specific test
-pytest tests/test_threat_engine.py
-```
-
-## 📋 Requirements
-
-- **OS:** Windows 10 or later
-- **RAM:** 100 MB minimum
-- **Disk:** 150 MB free space
-- **Python:** 3.11+ (for building from source)
-
-## 🔒 Security & Privacy
-
-- ✅ **Local Processing** - All threat detection runs locally
-- ✅ **No Data Collection** - We don't collect or transmit your data
-- ✅ **Open Source** - Full source code available for review
-- ✅ **Transparent** - All detection logic is visible in the code
-
-## 🐛 Troubleshooting
-
-### App doesn't start
-
-1. Make sure you extracted the **entire ZIP**, not just the EXE
-2. Check if antivirus is blocking it (add exception)
-3. Try running as administrator
-4. Check logs at: `%APPDATA%\.cyber-defense\logs\`
-
-### DLL Extraction Error
-
-If you see "Failed to extract PyQt5\Qt5\bin\opengl32sw.dll":
-- You downloaded only the EXE file
-- Download the full ZIP package from Releases
-- Extract everything and run from the folder
-
-### Antivirus False Positive
-
-Some antivirus software may flag the app as suspicious (common for unsigned apps):
-- This is a false positive
-- The app is open source - you can review the code
-- Add an exception in your antivirus settings
-
-## 📖 Documentation
-
-- **User Guide:** [GETTING_STARTED_DEMO.md](GETTING_STARTED_DEMO.md)
-- **Changelog:** [CHANGELOG.md](CHANGELOG.md)
-- **Security:** [SECURITY.md](SECURITY.md)
-- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📜 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- Built with PyQt5 for the modern GUI
-- Uses local threat detection algorithms
-- Designed for real-world security scenarios
-
-## 📧 Support
-
-- **Issues:** [GitHub Issues](../../issues)
-- **Email:** [Create an issue for support]
-- **Discussions:** [GitHub Discussions](../../discussions)
 
 ---
 
-**Made with ❤️ for cybersecurity education and protection**
+## ✨ Why use it?
 
-⭐ If you find this useful, please star the repo!
+- **Easy to run** – Download the ZIP, double-click **Run Cyber Defense.bat** or **CyberDefense.exe**. No installer required.
+- **Stays out of your way** – Runs in the system tray by default; double-click the tray icon to open the window.
+- **Clear and simple** – Dashboard, threat log, URL scanner, and settings in one place. Tooltips explain every option.
+- **Privacy-first** – All scanning runs on your PC. No cloud, no data collection.
+
+---
+
+## 📥 Download & run (easiest)
+
+### Windows – portable (no install)
+
+1. Go to [Releases](https://github.com/DarkRX01/Real-World-Cyber-Defense/releases).
+2. Download **`CyberDefense-Windows-Portable.zip`** (or the latest Windows build).
+3. **Extract the whole ZIP** to a folder (e.g. `Desktop\CyberDefense`).
+4. Double-click **`Run Cyber Defense.bat`** or **`CyberDefense.exe`**.
+
+**First run:** The app starts in the tray (icon near the clock). **Double-click the tray icon** to open the window. See **README-FIRST.txt** in the folder for more.
+
+> ⚠️ **Keep all files together** – Don’t move only the `.exe`. The app needs the other files in the same folder.
+
+---
+
+## 🚀 Quick start
+
+| Step | What to do |
+|------|------------|
+| 1 | Run the app (tray icon appears). |
+| 2 | Double-click tray icon → open main window. |
+| 3 | Copy any URL – we scan it automatically when clipboard monitoring is on. |
+| 4 | Or go to **Tools → URL Scanner**, paste a link, click **Scan URL**. |
+| 5 | Check **Threats** tab for the log; **Settings** to turn features on/off. |
+
+**Settings:** Sensitivity (Medium recommended), clipboard monitoring, notifications, “Start minimized to tray”, real-time file monitoring (Downloads/Desktop), and auto-update of threat definitions every 2 hours.
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|--------|-------------|
+| 🔗 **URL & phishing detection** | Scans URLs and clipboard links for phishing and suspicious patterns. |
+| 🚨 **Tracker blocking** | Detects known tracking/analytics domains. |
+| 📋 **Clipboard monitoring** | Optional; scans URLs when you copy them. |
+| 📁 **Real-time file monitoring** | Optional; watches Downloads/Desktop and scans new files. |
+| 🔄 **Auto-updates** | Optional; updates blocklists (ClamAV, URLhaus, PhishTank) every 2 hours. |
+| 🗂 **Quarantine** | Detected file threats can be moved to quarantine (restore later). |
+| 🌙 **Tray-first** | Runs in the tray; Win10-style notifications; window only when you open it. |
+| 🎨 **Dark UI** | Simple dashboard, threat log, tools, and settings. |
+
+---
+
+## 📖 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [USER-GUIDE.md](USER-GUIDE.md) | Short user guide: running the EXE, main window, recommended settings. |
+| **README-FIRST.txt** | In the release ZIP – how to run and what to do if Windows/AV blocks. |
+| [GETTING_STARTED_DESKTOP.md](GETTING_STARTED_DESKTOP.md) | Full getting started and first-time setup. |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common issues and fixes. |
+| [PRODUCTION-IMPROVEMENTS.md](PRODUCTION-IMPROVEMENTS.md) | Technical improvements (YARA, ML, real-time, quarantine, etc.). |
+| [SIGNING-SELF-DEFENSE.md](SIGNING-SELF-DEFENSE.md) | Code signing and running as a service. |
+
+---
+
+## 🛠 Build from source
+
+```bash
+git clone https://github.com/DarkRX01/Real-World-Cyber-Defense.git
+cd Real-World-Cyber-Defense/cyber-defense-extension
+
+pip install -r requirements.txt
+
+# Run directly
+python app_main.py
+
+# Build Windows EXE (output in dist/CyberDefense/)
+python build-safe-exe.py
+```
+
+The built folder will include **Run Cyber Defense.bat** and **README-FIRST.txt** for end users.
+
+---
+
+## ⚠️ Disclaimer
+
+This is **educational / light security** software, not a full replacement for Windows Defender or a commercial antivirus.
+
+- ✅ Good for: phishing/tracker awareness, URL checks, learning, extra layer.
+- ❌ Not: kernel-level protection, certified antivirus, or guaranteed zero-day protection.
+
+**For strong security:** Use Windows Defender (or your AV), keep the system updated, and use backups. See [SECURITY-ROADMAP.md](SECURITY-ROADMAP.md) for limitations and [PRODUCTION-IMPROVEMENTS.md](PRODUCTION-IMPROVEMENTS.md) for what’s implemented.
+
+---
+
+## 🐛 Troubleshooting
+
+| Issue | What to try |
+|-------|-------------|
+| App doesn’t start | Extract the **entire** ZIP; run **Run Cyber Defense.bat** or **CyberDefense.exe** from that folder. |
+| SmartScreen warning | Click “More info” → “Run anyway”. |
+| Antivirus blocks it | Common for unsigned apps. Add an exception for the app folder or build from source. |
+| “Where’s the window?” | App starts in the tray. **Double-click the tray icon** to open the window. |
+| Logs | `%APPDATA%\.cyber-defense\logs\` (Windows). |
+
+---
+
+## 📋 Requirements
+
+- **Windows:** 10 or later (or run from source on Linux).
+- **Portable build:** No install; ~150 MB disk, runs from the folder.
+- **From source:** Python 3.9+ and dependencies in `requirements.txt`.
+
+---
+
+## 🤝 Contributing & support
+
+- **Issues and ideas:** [GitHub Issues](https://github.com/DarkRX01/Real-World-Cyber-Defense/issues)
+- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md)
+- **Security:** [SECURITY.md](SECURITY.md)
+
+---
+
+## 📜 License
+
+MIT License – see [LICENSE](LICENSE).
+
+---
+
+**Made for easier, more transparent security on your PC.**  
+If this project helps you, consider giving it a ⭐ on GitHub.

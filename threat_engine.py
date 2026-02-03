@@ -7,10 +7,13 @@ All processing is local; no cloud dependency for core features.
 
 import re
 import ipaddress
+import math
+from collections import Counter
 from urllib.parse import urlparse
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 from enum import Enum
+from pathlib import Path
 
 # Sensitivity affects how aggressive detection is
 class Sensitivity(Enum):
@@ -76,6 +79,9 @@ LOOKALIKE_PATTERNS = [
     (r"g00gle\.", "google"), (r"goog1e\.", "google"),
     (r"netf1ix\.", "netflix"), (r"netfl1x\.", "netflix"),
 ]
+
+# EICAR standard antivirus test string (any AV must detect this)
+EICAR_TEST_STRING = r"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
 
 # Dangerous file extensions for downloads
 DANGEROUS_EXTENSIONS = frozenset([
@@ -389,3 +395,165 @@ def get_system_security_summary() -> dict:
     except Exception as e:
         out["issues"].append(f"Could not run system checks: {e}")
     return out
+
+
+def calculate_entropy(data: bytes) -> float:
+    """
+    Calculate Shannon entropy of data.
+    High entropy (7.0+) indicates packed/encrypted data.
+    """
+    if not data:
+        return 0.0
+    
+    # Count byte frequencies
+    counter = Counter(data)
+    entropy = 0.0
+    data_len = len(data)
+    
+    for count in counter.values():
+        if count == 0:
+            continue
+        probability = count / data_len
+        entropy -= probability * math.log2(probability)
+    
+    return entropy
+
+
+def scan_file_entropy(filepath: str) -> ThreatResult:
+    """
+    Scan file for high entropy (indicates packing/encryption).
+    Returns ThreatResult.
+    """
+    try:
+        path = Path(filepath)
+        if not path.exists() or not path.is_file():
+            return ThreatResult(
+                is_threat=False,
+                threat_type="error",
+                severity="low",
+                confidence=0,
+                message="File not found",
+                details={"filepath": filepath},
+            )
+        
+        # Read file (limit to first 1MB for performance)
+        max_bytes = 1024 * 1024  # 1MB
+        with path.open("rb") as f:
+            data = f.read(max_bytes)
+        
+        entropy = calculate_entropy(data)
+        file_size = path.stat().st_size
+        
+        # High entropy = likely packed/encrypted
+        if entropy >= 7.5:
+            return ThreatResult(
+                is_threat=True,
+                threat_type="suspicious_file",
+                severity="high",
+                confidence=int((entropy - 7.0) * 20),  # 7.5 = 10%, 8.0 = 30%
+                message=f"High entropy ({entropy:.2f}) - likely packed/encrypted malware",
+                details={"entropy": entropy, "size": file_size, "filepath": str(path)},
+            )
+        elif entropy >= 7.0:
+            return ThreatResult(
+                is_threat=True,
+                threat_type="suspicious_file",
+                severity="medium",
+                confidence=int((entropy - 6.5) * 10),
+                message=f"Elevated entropy ({entropy:.2f}) - possibly packed executable",
+                details={"entropy": entropy, "size": file_size, "filepath": str(path)},
+            )
+        
+        return ThreatResult(
+            is_threat=False,
+            threat_type="safe",
+            severity="low",
+            confidence=90,
+            message=f"Normal entropy ({entropy:.2f})",
+            details={"entropy": entropy, "size": file_size},
+        )
+    
+    except Exception as e:
+        return ThreatResult(
+            is_threat=False,
+            threat_type="error",
+            severity="low",
+            confidence=0,
+            message=f"Error scanning file: {e}",
+            details={"filepath": filepath, "error": str(e)},
+        )
+
+
+def is_eicar_bytes(data: bytes) -> bool:
+    """Return True if data contains the EICAR test string (any variant)."""
+    if not data:
+        return False
+    return (
+        EICAR_TEST_STRING.encode("ascii") in data
+        or b"EICAR-STANDARD-ANTIVIRUS-TEST-FILE" in data
+        or (b"EICAR" in data and b"ANTIVIRUS-TEST-FILE" in data)
+    )
+
+
+def scan_file_eicar(filepath: str) -> Optional[ThreatResult]:
+    """Detect EICAR test file. Returns ThreatResult if EICAR found else None."""
+    try:
+        path = Path(filepath).resolve()
+        if not path.exists() or not path.is_file():
+            return None
+        with path.open("rb") as f:
+            data = f.read(1024)
+        if not is_eicar_bytes(data):
+            return None
+        return ThreatResult(
+            is_threat=True,
+            threat_type="eicar_test",
+            severity="low",
+            confidence=100,
+            message="EICAR standard antivirus test file detected",
+            details={"filepath": filepath},
+        )
+    except (OSError, IOError):
+        # AV may block opening EICAR files (e.g. Errno 22 on Windows)
+        pass
+    except Exception:
+        pass
+    return None
+
+
+def scan_file_comprehensive(filepath: str, sensitivity: Sensitivity = Sensitivity.MEDIUM) -> ThreatResult:
+    """
+    Comprehensive file scan: EICAR + optional YARA + entropy + extension + size.
+    Returns ThreatResult.
+    """
+    # EICAR test file (standard AV test)
+    eicar_result = scan_file_eicar(filepath)
+    if eicar_result is not None:
+        return eicar_result
+
+    # Optional: YARA rules (when yara-python and yara_rules/ are present)
+    try:
+        from detection.yara_engine import scan_file_yara
+        yara_result = scan_file_yara(filepath)
+        if yara_result is not None and yara_result.is_threat:
+            return yara_result
+    except Exception:
+        pass
+
+    # Check entropy first (most important for packed malware)
+    entropy_result = scan_file_entropy(filepath)
+    if entropy_result.is_threat and entropy_result.severity in ["high", "medium"]:
+        return entropy_result
+    
+    # Check file extension and size
+    path = Path(filepath)
+    download_result = analyze_download(
+        filename=path.name,
+        download_url="",
+        file_size_bytes=path.stat().st_size if path.exists() else None
+    )
+    
+    if download_result.is_threat:
+        return download_result
+    
+    return entropy_result if not entropy_result.is_threat else download_result

@@ -200,26 +200,59 @@ start "" "dist\\CyberDefense\\CyberDefense.exe"
 
             launcher_path = portable_dir / "Run Cyber Defense.bat"
             launcher_content = """@echo off
-setlocal
+title Cyber Defense
 cd /d "%~dp0"
+if not exist "CyberDefense.exe" (
+    echo CyberDefense.exe not found. Keep all files in this folder.
+    pause
+    exit /b 1
+)
 start "" "CyberDefense.exe"
-endlocal
 """
             launcher_path.write_text(launcher_content, encoding="utf-8")
 
             readme_path = portable_dir / "README-FIRST.txt"
-            readme_content = """Real-World Cyber Defense (Windows)
+            readme_content = """========================================
+  CYBER DEFENSE - Real-World Security
+========================================
 
-How to run:
-1) Double-click: Run Cyber Defense.bat
+HOW TO RUN (easy):
+------------------
+  Double-click:  Run Cyber Defense.bat
 
-If Windows SmartScreen shows a warning:
-- Click: More info
-- Click: Run anyway
+  Or double-click:  CyberDefense.exe
 
-If your antivirus blocks it:
-- This can be a false positive for new unsigned apps.
-- Add an exception for this folder or contact your AV vendor.
+  The app will appear in your system tray (near the clock).
+  Double-click the tray icon to open the main window.
+
+
+FIRST TIME?
+-----------
+  - By default the window does NOT open on startup (tray only).
+  - Right-click the tray icon -> "Show" to open the window.
+  - Go to Settings to enable/disable features and save.
+
+
+IF WINDOWS WARNS (SmartScreen):
+-------------------------------
+  1. Click "More info"
+  2. Click "Run anyway"
+
+
+IF YOUR ANTIVIRUS BLOCKS IT:
+----------------------------
+  This app is open source and safe. Unsigned apps are often flagged.
+  Add an exception for this folder, or build from source (see GitHub).
+
+
+KEEP ALL FILES TOGETHER:
+------------------------
+  Do not move only CyberDefense.exe. Keep the whole folder;
+  the app needs the other files in this directory.
+
+
+Need help?  https://github.com/DarkRX01/Real-World-Cyber-Defense
+========================================
 """
             readme_path.write_text(readme_content, encoding="utf-8")
         except Exception:

@@ -363,7 +363,7 @@ For more detailed information:
 
 | Guide | Contents |
 |-------|----------|
-| [README-DESKTOP.md](README-DESKTOP.md) | Features, customization, advanced usage |
+| [README.md](README.md) | Features, download, quick start |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Problem solving (20+ scenarios) |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Technical design and how it works |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute code |

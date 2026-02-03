@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cyber-defense"
-version = "2.0.0"
+version = "2.1.0"
 description = "Real-World Cyber Defense - Desktop security tool for Windows and Linux"
 readme = "README.md"
 license = {text = "MIT"}
@@ -76,10 +76,18 @@ cyber-defense = "app_main:main"
 cyber-defense-gui = "app_main:main"
 
 [tool.setuptools]
-py-modules = ["app_main", "threat_engine", "background_service"]
+py-modules = [
+    "app_main",
+    "threat_engine",
+    "background_service",
+    "realtime_monitor",
+    "quarantine",
+    "update_system",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
+include = ["detection*"]
 
 [tool.ruff]
 target-version = "py39"

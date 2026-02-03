@@ -1,0 +1,25 @@
+[package]
+name = "cyberdefense-minifilter"
+version = "0.1.0"
+edition = "2021"
+description = "Windows minifilter driver stub for Cyber Defense - kernel-level file interception"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# windows-driver crate for WDK bindings (requires WDK installed)
+# Uncomment when building with WDK toolchain:
+# windows = { version = "0.52", features = ["Win32_System_IO", "Win32_Storage_FileSystem", "Win32_Foundation"] }
+# wdk = "0.2"
+# wdk-sys = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+# Minimal for now - full minifilter requires WDK and kernel build env
+# See: https://github.com/microsoft/Windows-driver-samples/tree/main/filesys/minifilter
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
