@@ -2,3 +2,6 @@ PyQt5==5.15.9
 requests==2.31.0
 pyperclip==1.8.2
 psutil==5.9.5
+
+watchdog>=3.0.0
+pytest-cov>=4.0.0

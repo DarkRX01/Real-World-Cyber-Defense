@@ -1,58 +1,32 @@
+---
 name: Question
-description: Ask a question about the extension
+description: Ask a question about the Cyber Defense desktop app
 title: "Question: [Brief question]"
 labels: ["question"]
+assignees: []
+---
 
-body:
-  - type: markdown
-    attributes:
-      value: |
-        Have a question? We'd love to help!
+## Question
 
-  - type: textarea
-    id: question
-    attributes:
-      label: Question
-      description: What would you like to know?
-      placeholder: "How do I...?"
-    validations:
-      required: true
+What would you like to know?
 
-  - type: textarea
-    id: context
-    attributes:
-      label: Context
-      description: Any additional context?
-      placeholder: "I'm trying to..."
-      required: true
+## Context
 
-  - type: dropdown
-    id: topic
-    attributes:
-      label: Topic
-      options:
-        - "Setup/Installation"
-        - "Configuration"
-        - "Usage"
-        - "API Integration"
-        - "Development"
-        - "Other"
-    validations:
-      required: true
+What are you trying to do? (e.g. first-time setup, scanning a URL, changing settings.)
 
-  - type: textarea
-    id: tried
-    attributes:
-      label: What Have You Tried?
-      description: What steps have you already taken?
-      placeholder: "I've tried..."
+## Topic
 
-  - type: checkboxes
-    id: checklist
-    attributes:
-      label: Before Asking
-      options:
-        - label: "I checked the README and documentation"
-          required: true
-        - label: "I searched existing issues and discussions"
-          required: true
+- [ ] Setup / Installation (portable EXE or from source)
+- [ ] Configuration / Settings
+- [ ] Usage (tray, dashboard, tools)
+- [ ] Building / Development
+- [ ] Other
+
+## What you've already tried
+
+(e.g. read README, checked TROUBLESHOOTING.md, searched existing issues.)
+
+---
+
+- [ ] I've checked the README and linked documentation
+- [ ] I've searched existing issues and discussions

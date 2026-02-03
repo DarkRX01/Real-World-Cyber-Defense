@@ -137,7 +137,7 @@ class TestPhishingDetection:
         url = "https://example.com/%20%21%22%23%24%25%26"
         result = get_phishing_confidence(url)
         # Should flag excessive encoding
-        assert result.details.get("encoding") is True or result.is_threat
+        assert result.details.get("excessive_encoding") is True or result.is_threat
 
     def test_sensitivity_low_reduces_score(self):
         url = "http://suspicious.xyz/verify-account"

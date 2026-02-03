@@ -1,9 +1,13 @@
 # Build artifacts
 build/
 *.spec
+CyberDefense-safe.spec
 *.egg-info/
-# Allow the final EXE in dist/
 dist/
+
+# Data and rules (downloaded or generated)
+data/
+yara_rules/
 
 # Python
 __pycache__/

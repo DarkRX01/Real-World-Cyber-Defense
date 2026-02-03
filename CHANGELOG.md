@@ -7,16 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No additional changes yet._
+
+## [2.1.0] - 2026-02-04
+
 ### Added
-- Comprehensive unit test suite with pytest
-- Linux CI/CD workflow with GitHub Actions
-- Modern Python packaging with pyproject.toml
-- Development dependencies and linting configuration
-- File-based logging for debugging
+
+**Detection**
+- **YARA engine** (`detection/yara_engine.py`) – File scanning with YARA; use rules from MalwareBazaar in `yara_rules/`. Wired into comprehensive file scan when `yara-python` and rules are present.
+- **Static ML detector** (`detection/ml_detector.py`) – scikit-learn on entropy, file size, PE sections (optional `pefile`). Heuristic fallback when no model is trained.
+- **Behavioral monitor** (`detection/behavioral.py`) – Process creation monitoring (psutil); flags suspicious LOLBins (e.g. encoded PowerShell). Optional in Settings: “Behavioral monitoring”.
+- **EICAR detection** – Standard AV test string detection in `scan_file_eicar()` and `scan_file_comprehensive()`; `is_eicar_bytes()` for in-memory checks.
+
+**Real-time & updates**
+- **Event-driven file monitor** (`realtime_monitor.py`) – Watchdog-based; no polling. Watches Downloads/Desktop (optional in Settings). Scans new files immediately; optional quarantine.
+- **Update system** (`update_system.py`) – Pull ClamAV, URLhaus, PhishTank every 2 hours over HTTPS. Optional in Settings: “Auto-update threat definitions”.
+- **Quarantine** (`quarantine.py`) – Move threats to quarantine folder with metadata; restore and secure-delete support.
+
+**UX & packaging**
+- **Tray-first** – Start minimized to tray by default; double-click tray to open window. Tooltips on all main controls and settings.
+- **User-friendly EXE** – Build produces `Run Cyber Defense.bat` and **README-FIRST.txt** in the release folder (how to run, first-time tips, SmartScreen/AV notes).
+- **USER-GUIDE.md** – Short user guide for portable EXE and recommended settings.
+- **README.md** – Rewritten for users: quick download/run, features table, docs links, troubleshooting table.
+
+**CI & quality**
+- **CI** (`.github/workflows/test.yml`) – EICAR tests (bytes + file when not blocked by AV), threat engine tests, coverage; **build-and-scan** job (build exe, verify EICAR); Linux tests.
+- **Packaging** – WiX MSI (`packaging/wix/`, `build-msi.ps1`), AppImage and DMG scripts (`packaging/`).
+
+**Docs & GitHub**
+- **SIGNING-SELF-DEFENSE.md** – EV cert, signtool, SmartScreen, NSSM/systemd.
+- **PRODUCTION-IMPROVEMENTS.md** – Summary of all production-grade additions.
+- **Minifilter scaffold** (`minifilter-rust/`) – Rust stub and README for a future Windows minifilter.
+- **GitHub** – Issue templates (bug, feature, question) and PR template updated for the desktop app.
 
 ### Changed
-- Updated documentation for desktop application
-- Improved error handling throughout codebase
+- Dashboard placeholder text explains copy-URL-to-scan and Tools → Scan URL.
+- Settings: added “Start minimized to tray”, “Real-time file monitoring”, “Auto-update definitions”, “Behavioral monitoring”; all with tooltips.
+- Tray tooltip: “Double-click to open, right-click for menu”.
+- Comprehensive file scan optionally runs YARA when available.
 
 ## [2.0.0] - 2026-01-29
 
@@ -73,6 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| 2.1.0 | 2026-02-04 | YARA/ML/behavioral detection, real-time monitor, quarantine, updates, tray-first UX, README & GitHub |
 | 2.0.0 | 2026-01-29 | Full desktop app, cross-platform, advanced detection |
 | 1.0.0 | 2025-06-15 | Initial release |
 

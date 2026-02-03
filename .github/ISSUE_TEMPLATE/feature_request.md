@@ -1,63 +1,27 @@
+---
 name: Feature Request
-description: Suggest an improvement or new feature
-title: "Feature: [Brief description]"
+description: Suggest a new feature or improvement for Cyber Defense
+title: "Feature: [Short title]"
 labels: ["enhancement", "needs-triage"]
+assignees: []
+---
 
-body:
-  - type: markdown
-    attributes:
-      value: |
-        Thank you for suggesting an improvement! Describe your idea in detail.
+## Is your feature request related to a problem?
 
-  - type: textarea
-    id: description
-    attributes:
-      label: Description
-      description: What is the feature or improvement?
-      placeholder: "Describe the feature..."
-    validations:
-      required: true
+A clear description of the problem (e.g. "I'm always frustrated when ...").
 
-  - type: textarea
-    id: problem
-    attributes:
-      label: Problem It Solves
-      description: What problem does this address?
-      placeholder: "This would help with..."
-    validations:
-      required: true
+## Describe the solution you'd like
 
-  - type: textarea
-    id: use-case
-    attributes:
-      label: Use Case
-      description: How would you use this feature?
-      placeholder: "I would use it for..."
-    validations:
-      required: true
+What would you like the app to do? Be as specific as you can.
 
-  - type: textarea
-    id: alternatives
-    attributes:
-      label: Alternatives Considered
-      description: Any other approaches?
-      placeholder: "Other options could be..."
+## Describe alternatives you've considered
 
-  - type: textarea
-    id: implementation
-    attributes:
-      label: Possible Implementation
-      description: Optional - Any ideas on how to implement?
-      placeholder: "This could be done by..."
+Any other ways to solve the same problem?
 
-  - type: checkboxes
-    id: checklist
-    attributes:
-      label: Before Submitting
-      options:
-        - label: "I have checked existing issues and discussions"
-          required: true
-        - label: "This feature aligns with the project scope"
-          required: true
-        - label: "I would be willing to help implement this"
-          required: false
+## Additional context
+
+Screenshots, mockups, or examples from other apps (if any).
+
+---
+
+- [ ] I've checked existing issues and feature requests to avoid duplicates

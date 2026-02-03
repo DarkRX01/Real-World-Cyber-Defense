@@ -1,96 +1,54 @@
-## 📝 Description
+## Description
 
-<!-- Clear description of the changes in this PR -->
+Clear description of the changes in this PR.
 
-**Type of Change:**
+**Type of change**
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Documentation update
-- [ ] Performance improvement
+- [ ] Performance / UX improvement
 - [ ] Refactoring
 
 ---
 
-## ✅ Checklist
+## Checklist
 
-Before submitting this PR, please ensure:
-
-### Code Quality
-- [ ] Code follows the style guide
-- [ ] Code has been self-reviewed
-- [ ] Comments added for complex logic
-- [ ] No unnecessary code or comments left in
-
-### Testing
-- [ ] I have tested the extension after changes
-- [ ] No errors in Chrome DevTools console (F12)
-- [ ] Settings persist correctly
-- [ ] API integration works (if applicable)
-- [ ] All existing features still work
+### Code & tests
+- [ ] Code follows project style (see CONTRIBUTING.md)
+- [ ] Self-reviewed
+- [ ] `pytest tests/` passes (or relevant tests run)
+- [ ] Manual test: app runs (portable EXE or `python app_main.py`)
 
 ### Documentation
-- [ ] Documentation updated (if needed)
-- [ ] Code comments added (if needed)
-- [ ] CHANGELOG.md updated (if needed)
-- [ ] README updated (if breaking changes)
+- [ ] README / docs updated if needed
+- [ ] CHANGELOG.md updated if user-facing
 
 ### Security
-- [ ] No hardcoded API keys or secrets
+- [ ] No hardcoded secrets or API keys
 - [ ] No sensitive data exposed
-- [ ] No security vulnerabilities introduced
-- [ ] Input validation added (if applicable)
 
 ### Git
-- [ ] Branch is up to date with main
-- [ ] Commits have clear messages
-- [ ] No merge conflicts
-- [ ] No unrelated changes included
+- [ ] Branch up to date with main
+- [ ] Clear commit messages
+- [ ] No unrelated changes
 
 ---
 
-## 🔍 Testing Instructions
+## How to test
 
-How to test these changes:
-
-1. Load the extension in Chrome (chrome://extensions/)
-2. Test the following:
-   - [ ] Step 1: ...
-   - [ ] Step 2: ...
-   - [ ] Step 3: ...
+1. 
+2. 
+3. 
 
 ---
 
-## 📦 Files Changed
+## Related issues
 
-- `file1.js` - Description of changes
-- `file2.html` - Description of changes
-- `file3.css` - Description of changes
+Closes #(issue number if any)
 
 ---
 
-## 🎯 Related Issues
+## Breaking changes?
 
-Closes #[issue number]
-
----
-
-## 📋 Additional Notes
-
-<!-- Any additional context or discussion points -->
-
----
-
-## 🚨 Breaking Changes?
-
-- [ ] Yes - Please describe below
 - [ ] No
-
-<!-- If breaking changes, explain what breaks and migration path -->
-
----
-
-## 📚 Documentation Links
-
-- [CONTRIBUTING.md](../CONTRIBUTING.md)
-- [TESTING_GUIDE.md](../TESTING_GUIDE.md)
-- [DEVELOPMENT.md](../DEVELOPMENT.md)
+- [ ] Yes – describe and migration path below

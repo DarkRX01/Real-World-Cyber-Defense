@@ -140,6 +140,10 @@ def default_settings() -> dict:
         "enable_phishing": True,
         "enable_download_scan": True,
         "enable_url_scan": True,
+        "start_minimized": True,
+        "enable_realtime_monitor": False,
+        "enable_auto_updates": True,
+        "enable_behavioral_monitor": False,
     }
 
 
@@ -200,6 +204,9 @@ class CyberDefenseApp(QMainWindow):
         self.threat_log: list = load_threat_log()
         self._paused = False
         self._stats = {"threats": 0, "trackers": 0, "phishing": 0}
+        self._update_scheduler = None
+        self._realtime_monitor = None
+        self._behavioral_monitor = None
 
         self._service = BackgroundService(
             on_threat=self._on_threat_detected,
@@ -213,6 +220,7 @@ class CyberDefenseApp(QMainWindow):
         self._apply_settings()
         self._refresh_stats()
         self._start_monitoring()
+        self._start_optional_services()
 
     def _create_stat_card(self, icon: str, title: str, gradient: str, glow: str) -> QWidget:
         """Create a modern stat card with gradient background."""
@@ -415,7 +423,12 @@ class CyberDefenseApp(QMainWindow):
         layout.addWidget(QLabel("Overview"))
         self.dashboard_text = QPlainTextEdit()
         self.dashboard_text.setReadOnly(True)
-        self.dashboard_text.setPlaceholderText("Summary and recent activity...")
+        self.dashboard_text.setPlaceholderText(
+            "Copy a URL and paste it somewhere — we'll scan it automatically.\n\n"
+            "Or go to Tools → Scan URL to check a link manually.\n\n"
+            "Threats and activity will appear here and in the Threats tab."
+        )
+        self.dashboard_text.setToolTip("Recent activity and threat summary. Copy URLs to trigger automatic scanning.")
         layout.addWidget(self.dashboard_text)
         return w
 
@@ -437,26 +450,33 @@ class CyberDefenseApp(QMainWindow):
 
         # URL Scanner
         gb = QGroupBox("🔗 URL Scanner")
+        gb.setToolTip("Paste any link here to check if it's safe (phishing, tracker, or malware).")
         fl = QFormLayout(gb)
         self.url_input = QLineEdit()
-        self.url_input.setPlaceholderText("https://example.com")
+        self.url_input.setPlaceholderText("Paste a URL here (e.g. https://example.com)")
+        self.url_input.setToolTip("Paste the full URL you want to check.")
         fl.addRow("URL:", self.url_input)
         scan_btn = QPushButton("Scan URL")
+        scan_btn.setToolTip("Check the URL for threats.")
         scan_btn.clicked.connect(self._scan_url_clicked)
         fl.addRow("", scan_btn)
         self.scan_result = QPlainTextEdit()
         self.scan_result.setReadOnly(True)
+        self.scan_result.setPlaceholderText("Result will appear here after you click Scan URL.")
         fl.addRow(self.scan_result)
         layout.addWidget(gb)
 
         # System Scan
-        gb2 = QGroupBox("💻 System Security Scan")
+        gb2 = QGroupBox("💻 System Security Check")
+        gb2.setToolTip("Quick check: firewall and Windows Defender status.")
         vl = QVBoxLayout(gb2)
         sys_btn = QPushButton("Run system security check")
+        sys_btn.setToolTip("Check if Windows Firewall and Defender are enabled.")
         sys_btn.clicked.connect(self._run_system_scan)
         vl.addWidget(sys_btn)
         self.sys_result = QPlainTextEdit()
         self.sys_result.setReadOnly(True)
+        self.sys_result.setPlaceholderText("Result will appear here after you run the check.")
         vl.addWidget(self.sys_result)
         layout.addWidget(gb2)
 
@@ -468,21 +488,41 @@ class CyberDefenseApp(QMainWindow):
         layout = QVBoxLayout(w)
 
         self.cb_clipboard = QCheckBox("Monitor clipboard for URLs")
+        self.cb_clipboard.setToolTip("When you copy a link, we scan it automatically.")
         self.cb_tracker = QCheckBox("Tracker detection")
+        self.cb_tracker.setToolTip("Warn about known tracking domains (e.g. analytics).")
         self.cb_phishing = QCheckBox("Phishing detection")
+        self.cb_phishing.setToolTip("Detect fake login pages and scam URLs.")
         self.cb_download = QCheckBox("Download scanning")
+        self.cb_download.setToolTip("Check downloaded files for dangerous types.")
         self.cb_url_scan = QCheckBox("URL scanning")
+        self.cb_url_scan.setToolTip("Scan URLs for threats.")
         self.cb_notifications = QCheckBox("Show notifications for threats")
+        self.cb_notifications.setToolTip("Show a popup when a threat is detected.")
+        self.cb_start_minimized = QCheckBox("Start minimized to tray (recommended)")
+        self.cb_start_minimized.setToolTip("Only show the tray icon on startup; double-click tray to open the window.")
+        self.cb_realtime_monitor = QCheckBox("Real-time file monitoring (Downloads/Desktop)")
+        self.cb_realtime_monitor.setToolTip("Watch Downloads and Desktop for new files and scan them immediately.")
+        self.cb_auto_updates = QCheckBox("Auto-update threat definitions every 2 hours")
+        self.cb_auto_updates.setToolTip("Keep blocklists (ClamAV, URLhaus, PhishTank) up to date.")
+        self.cb_behavioral_monitor = QCheckBox("Behavioral monitoring (suspicious process detection)")
+        self.cb_behavioral_monitor.setToolTip("Watch for suspicious process patterns (e.g. encoded PowerShell). Optional; requires no extra deps.")
 
         self.sensitivity_combo = QComboBox()
         self.sensitivity_combo.addItems(["Low", "Medium", "High", "Extreme"])
+        self.sensitivity_combo.setToolTip("Medium is recommended. High/Extreme may flag more safe sites.")
 
-        for c in (self.cb_clipboard, self.cb_tracker, self.cb_phishing, self.cb_download, self.cb_url_scan, self.cb_notifications):
+        for c in (
+            self.cb_clipboard, self.cb_tracker, self.cb_phishing, self.cb_download,
+            self.cb_url_scan, self.cb_notifications, self.cb_start_minimized,
+            self.cb_realtime_monitor, self.cb_auto_updates, self.cb_behavioral_monitor,
+        ):
             layout.addWidget(c)
         layout.addWidget(QLabel("Sensitivity:"))
         layout.addWidget(self.sensitivity_combo)
 
         save_btn = QPushButton("Save settings")
+        save_btn.setToolTip("Apply and save your preferences.")
         save_btn.clicked.connect(self._save_settings_clicked)
         layout.addWidget(save_btn)
         layout.addStretch()
@@ -490,7 +530,7 @@ class CyberDefenseApp(QMainWindow):
 
     def _setup_tray(self):
         self.tray = QSystemTrayIcon(self)
-        self.tray.setToolTip("Cyber Defense")
+        self.tray.setToolTip("Cyber Defense — Double-click to open, right-click for menu")
         try:
             icon = QApplication.style().standardIcon(QStyle.SP_MessageBoxInformation)
             self.tray.setIcon(icon)
@@ -522,6 +562,21 @@ class CyberDefenseApp(QMainWindow):
     def _quit(self):
         logger.info("Shutting down Cyber Defense")
         self._service.stop()
+        if getattr(self, "_update_scheduler", None):
+            try:
+                self._update_scheduler.stop()
+            except Exception:
+                pass
+        if getattr(self, "_realtime_monitor", None):
+            try:
+                self._realtime_monitor.stop()
+            except Exception:
+                pass
+        if getattr(self, "_behavioral_monitor", None):
+            try:
+                self._behavioral_monitor.stop()
+            except Exception:
+                pass
         save_settings(self.settings)
         save_threat_log(self.threat_log)
         QApplication.quit()
@@ -547,6 +602,10 @@ class CyberDefenseApp(QMainWindow):
         self.cb_download.setChecked(bool(s.get("enable_download_scan", True)))
         self.cb_url_scan.setChecked(bool(s.get("enable_url_scan", True)))
         self.cb_notifications.setChecked(bool(s.get("enable_notifications", True)))
+        self.cb_start_minimized.setChecked(bool(s.get("start_minimized", True)))
+        self.cb_realtime_monitor.setChecked(bool(s.get("enable_realtime_monitor", False)))
+        self.cb_auto_updates.setChecked(bool(s.get("enable_auto_updates", True)))
+        self.cb_behavioral_monitor.setChecked(bool(s.get("enable_behavioral_monitor", False)))
         sens = s.get("sensitivity", "MEDIUM").capitalize()
         idx = self.sensitivity_combo.findText(sens)
         if idx >= 0:
@@ -559,6 +618,10 @@ class CyberDefenseApp(QMainWindow):
         self.settings["enable_download_scan"] = self.cb_download.isChecked()
         self.settings["enable_url_scan"] = self.cb_url_scan.isChecked()
         self.settings["enable_notifications"] = self.cb_notifications.isChecked()
+        self.settings["start_minimized"] = self.cb_start_minimized.isChecked()
+        self.settings["enable_realtime_monitor"] = self.cb_realtime_monitor.isChecked()
+        self.settings["enable_auto_updates"] = self.cb_auto_updates.isChecked()
+        self.settings["enable_behavioral_monitor"] = self.cb_behavioral_monitor.isChecked()
         self.settings["sensitivity"] = self.sensitivity_combo.currentText().upper()
         save_settings(self.settings)
         self._service.update_settings(
@@ -570,6 +633,118 @@ class CyberDefenseApp(QMainWindow):
 
     def _start_monitoring(self):
         self._service.start()
+
+    def _start_optional_services(self):
+        """Start update scheduler and optional real-time file monitor (silent unless critical)."""
+        if self.settings.get("enable_auto_updates", True):
+            try:
+                from update_system import UpdateScheduler
+                self._update_scheduler = UpdateScheduler(
+                    on_progress=lambda msg: logger.debug("Update: %s", msg),
+                    on_done=lambda r: logger.info("Definitions updated: %s", r),
+                )
+                self._update_scheduler.start()
+            except Exception as e:
+                logger.debug("Update scheduler not started: %s", e)
+                self._update_scheduler = None
+        else:
+            self._update_scheduler = None
+
+        if self.settings.get("enable_realtime_monitor", False):
+            try:
+                import os
+                from realtime_monitor import RealtimeFileMonitor
+                watch_paths = [
+                    os.path.expanduser("~/Downloads"),
+                    os.path.expanduser("~/Desktop"),
+                ]
+                if os.environ.get("USERPROFILE"):
+                    watch_paths.append(os.path.join(os.environ["USERPROFILE"], "Downloads"))
+                self._realtime_monitor = RealtimeFileMonitor(
+                    watch_paths=watch_paths,
+                    on_threat=self._on_file_threat,
+                )
+                self._realtime_monitor.start()
+            except Exception as e:
+                logger.debug("Realtime monitor not started: %s", e)
+                self._realtime_monitor = None
+        else:
+            self._realtime_monitor = None
+
+        if self.settings.get("enable_behavioral_monitor", False):
+            try:
+                from detection.behavioral import BehavioralMonitor
+                self._behavioral_monitor = BehavioralMonitor(
+                    on_suspicious=lambda r: self._on_behavioral_threat(r),
+                )
+                self._behavioral_monitor.start()
+            except Exception as e:
+                logger.debug("Behavioral monitor not started: %s", e)
+                self._behavioral_monitor = None
+        else:
+            self._behavioral_monitor = None
+
+    def _on_file_threat(self, result: ThreatResult, path: str):
+        """Called when real-time monitor detects a file threat; notify and optionally quarantine."""
+        if self._paused:
+            return
+        entry = {
+            "time": datetime.now().isoformat(),
+            "type": result.threat_type,
+            "severity": result.severity,
+            "url": path,
+            "message": result.message,
+            "confidence": result.confidence,
+        }
+        self.threat_log.append(entry)
+        self._stats["threats"] += 1
+        save_threat_log(self.threat_log)
+        self._refresh_stats()
+        self._refresh_threat_table()
+        self._update_dashboard()
+        if self.settings.get("enable_notifications", True):
+            self.tray.showMessage(
+                "Cyber Defense",
+                f"File threat: {result.message[:60]}",
+                QSystemTrayIcon.Warning,
+                5000,
+            )
+        # Optional: offer quarantine (quarantine module)
+        if result.details.get("filepath") or path:
+            try:
+                from quarantine import quarantine_file
+                q = quarantine_file(path, threat_type=result.threat_type, threat_message=result.message, copy_instead_of_move=True)
+                if "error" not in q:
+                    logger.info("Quarantined: %s", q.get("quarantine_path"))
+            except Exception:
+                pass
+
+    def _on_behavioral_threat(self, result: ThreatResult):
+        """Called when behavioral monitor detects a suspicious process."""
+        if self._paused:
+            return
+        detail = result.details.get("name") or result.details.get("reason") or "suspicious process"
+        entry = {
+            "time": datetime.now().isoformat(),
+            "type": result.threat_type,
+            "severity": result.severity,
+            "url": f"Process: {detail}",
+            "message": result.message,
+            "confidence": result.confidence,
+        }
+        self.threat_log.append(entry)
+        self._stats["threats"] += 1
+        save_threat_log(self.threat_log)
+        self._refresh_stats()
+        self._refresh_threat_table()
+        self._update_dashboard()
+        if self.settings.get("enable_notifications", True):
+            self.tray.showMessage(
+                "Cyber Defense",
+                f"Behavior: {result.message[:60]}",
+                QSystemTrayIcon.Warning,
+                5000,
+            )
 
     def _toggle_pause(self):
         self._paused = not self._paused
@@ -946,12 +1121,16 @@ def main():
         frame.moveCenter(center)
         win.move(frame.topLeft())
         
-        # Show window and bring to front
-        win.show()
-        win.raise_()
-        win.activateWindow()
-        
-        logger.info("Application window shown")
+        # Tray-first: start minimized if setting (nobody wants a window popping up every ping)
+        if win.settings.get("start_minimized", True):
+            win.show()  # needed for tray to have a parent
+            win.hide()
+            logger.info("Application started in tray (start minimized)")
+        else:
+            win.show()
+            win.raise_()
+            win.activateWindow()
+            logger.info("Application window shown")
         return app.exec_()
     except Exception as e:
         logger.critical(f"Fatal error: {e}", exc_info=True)
