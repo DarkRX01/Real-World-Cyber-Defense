@@ -45,7 +45,7 @@ a = Analysis(
         'PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets',
         'threat_engine', 'background_service',
         'realtime_monitor', 'quarantine', 'update_system',
-        'signature_updater', 'vpn_client', 'ransomware_shield', 'anomaly_detector',
+        'signature_updater', 'vpn_client', 'ransomware_shield', 'anomaly_detector', 'notification_manager',
         'detection', 'detection.yara_engine', 'detection.behavioral', 'detection.ml_detector', 'detection.heuristic_pe',
     ],
     hookspath=[],

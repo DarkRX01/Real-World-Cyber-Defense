@@ -25,8 +25,8 @@ import logging
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QObject, QTimer
+from PyQt5.QtGui import QIcon, QPixmap, QPainter, QColor
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -48,6 +48,9 @@ from PyQt5.QtWidgets import (
     QMenu,
     QMessageBox,
     QPlainTextEdit,
+    QProgressBar,
+    QScrollArea,
+    QFrame,
 )
 
 APP_VERSION = "2.2.0"
@@ -162,6 +165,12 @@ def default_settings() -> dict:
         "enable_vpn": False,
         "vpn_config_path": "",
         "vpn_kill_switch": False,
+        "notif_cooldown_seconds": 25.0,
+        "notif_batch_similar": True,
+        "notif_mute_file": False,
+        "notif_mute_network": False,
+        "notif_mute_vpn": False,
+        "notif_mute_behavioral": False,
     }
 
 
@@ -205,6 +214,101 @@ def sensitivity_from_string(s: str) -> Sensitivity:
     return m.get(s.upper(), Sensitivity.MEDIUM)
 
 
+# --- Worker threads for non-blocking UI ---
+
+class ScanWorker(QObject):
+    """Runs scan_file_comprehensive in background. Emits result or progress."""
+    finished = pyqtSignal(object, str)
+    progress = pyqtSignal(int, int)
+
+    def __init__(self, paths: list, sensitivity: Sensitivity):
+        super().__init__()
+        self.paths = paths
+        self.sensitivity = sensitivity
+
+    def run(self):
+        from threat_engine import scan_file_comprehensive
+        total = len(self.paths)
+        for i, p in enumerate(self.paths):
+            try:
+                r = scan_file_comprehensive(p, self.sensitivity)
+                if r.is_threat:
+                    self.finished.emit(r, p)
+            except Exception:
+                pass
+            self.progress.emit(i + 1, total)
+
+
+class FolderScanWorker(QObject):
+    """Scans a folder recursively for files, then runs ScanWorker-style scan."""
+    finished = pyqtSignal()
+    threat_found = pyqtSignal(object, str)
+    progress = pyqtSignal(int, int)
+
+    def __init__(self, folder: str, extensions: list, sensitivity: Sensitivity):
+        super().__init__()
+        self.folder = folder
+        self.extensions = extensions or [".exe", ".dll", ".bat", ".ps1", ".vbs", ".js", ".msi"]
+        self.sensitivity = sensitivity
+
+    def run(self):
+        from pathlib import Path
+        from threat_engine import scan_file_comprehensive
+        folder = Path(self.folder)
+        if not folder.exists():
+            self.finished.emit()
+            return
+        files = []
+        for ext in self.extensions:
+            files.extend(folder.rglob(f"*{ext}"))
+        files = [str(f) for f in files if f.is_file()][:500]
+        total = len(files)
+        for i, p in enumerate(files):
+            try:
+                r = scan_file_comprehensive(p, self.sensitivity)
+                if r.is_threat:
+                    self.threat_found.emit(r, p)
+            except Exception:
+                pass
+            self.progress.emit(i + 1, total)
+        self.finished.emit()
+
+
+class VPNConnectWorker(QObject):
+    """Runs VPN connect/disconnect in background."""
+    finished = pyqtSignal(bool, str)
+
+    def __init__(self, config_path: str, connect: bool):
+        super().__init__()
+        self.config_path = config_path
+        self.connect = connect
+
+    def run(self):
+        try:
+            if self.connect:
+                from vpn_client import connect_wireguard
+                ok, msg = connect_wireguard(self.config_path)
+            else:
+                from vpn_client import disconnect_wireguard
+                ok, msg = disconnect_wireguard(self.config_path)
+            self.finished.emit(ok, msg)
+        except Exception as e:
+            self.finished.emit(False, str(e))
+
+
+def _make_tray_icon_pixmap(color: str, size: int = 32) -> QPixmap:
+    """Create a simple colored circle icon for tray status (green/yellow/red)."""
+    pix = QPixmap(size, size)
+    pix.fill(Qt.transparent)
+    p = QPainter(pix)
+    p.setRenderHint(QPainter.Antialiasing)
+    p.setBrush(QColor(color))
+    p.setPen(Qt.NoPen)
+    p.drawEllipse(2, 2, size - 4, size - 4)
+    p.end()
+    return pix
+
+
 class CyberDefenseApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -236,10 +340,12 @@ class CyberDefenseApp(QMainWindow):
 
         self._build_ui()
         self._setup_tray()
+        self._setup_notification_manager()
         self._apply_settings()
         self._refresh_stats()
         self._start_monitoring()
         self._start_optional_services()
+        self._start_status_timer()
 
     def _create_stat_card(self, icon: str, title: str, gradient: str, glow: str) -> QWidget:
         """Create a modern stat card with gradient background."""
@@ -442,13 +548,14 @@ class CyberDefenseApp(QMainWindow):
         
         layout.addWidget(stats_container)
 
-        # Tabs
+        # Tabs: Dashboard, Threats, Real-time, VPN, Settings
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
-        self.tabs.addTab(self._dashboard_tab(), "📊 Dashboard")
-        self.tabs.addTab(self._threats_tab(), "🔴 Threats")
-        self.tabs.addTab(self._tools_tab(), "🔧 Tools")
-        self.tabs.addTab(self._settings_tab(), "⚙️ Settings")
+        self.tabs.addTab(self._dashboard_tab(), "Dashboard")
+        self.tabs.addTab(self._threats_tab(), "Threats")
+        self.tabs.addTab(self._realtime_tab(), "Real-time")
+        self.tabs.addTab(self._vpn_tab(), "VPN")
+        self.tabs.addTab(self._settings_tab(), "Settings")
         layout.addWidget(self.tabs)
 
         # Buttons
@@ -457,9 +564,9 @@ class CyberDefenseApp(QMainWindow):
         self.btn_pause = QPushButton("⏸ Pause")
         self.btn_pause.setMinimumWidth(120)
         self.btn_pause.clicked.connect(self._toggle_pause)
-        self.btn_settings = QPushButton("⚙ Settings")
+        self.btn_settings = QPushButton("Settings")
         self.btn_settings.setMinimumWidth(120)
-        self.btn_settings.clicked.connect(lambda: self.tabs.setCurrentIndex(3))
+        self.btn_settings.clicked.connect(lambda: self.tabs.setCurrentIndex(4))
         self.btn_close = QPushButton("Close")
         self.btn_close.setMinimumWidth(100)
         self.btn_close.clicked.connect(self.close)
@@ -472,39 +579,110 @@ class CyberDefenseApp(QMainWindow):
         w = QWidget()
         layout = QVBoxLayout(w)
         layout.setSpacing(16)
-        overview_header = QLabel("📋 Overview")
-        overview_header.setStyleSheet("font-size: 14px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;")
+        overview_header = QLabel("Overview")
+        overview_header.setStyleSheet("font-size: 14px; font-weight: 600; color: #94a3b8;")
         layout.addWidget(overview_header)
         self.dashboard_text = QPlainTextEdit()
         self.dashboard_text.setReadOnly(True)
-        self.dashboard_text.setMinimumHeight(180)
+        self.dashboard_text.setMinimumHeight(120)
         self.dashboard_text.setPlaceholderText(
-            "Copy a URL and paste it somewhere — we'll scan it automatically.\n\n"
-            "Or go to Tools → Scan URL to check a link manually.\n\n"
-            "Threats and activity will appear here and in the Threats tab."
+            "Copy a URL to scan automatically. Threats appear here and in the Threats tab."
         )
-        self.dashboard_text.setToolTip("Recent activity and threat summary. Copy URLs to trigger automatic scanning.")
-        self.dashboard_text.setStyleSheet("""
-            QPlainTextEdit {
-                background-color: #1e293b;
-                color: #e2e8f0;
-                border: 1px solid #334155;
-                border-radius: 10px;
-                padding: 14px;
-                font-size: 11pt;
-            }
-        """)
         layout.addWidget(self.dashboard_text)
         quick_hl = QLabel("Quick actions")
         quick_hl.setStyleSheet("font-size: 13px; font-weight: 600; color: #94a3b8; margin-top: 8px;")
         layout.addWidget(quick_hl)
-        quick_btn = QPushButton("Open Tools → Scan URL")
-        quick_btn.setMaximumWidth(220)
-        quick_btn.setToolTip("Jump to URL scanner")
-        quick_btn.clicked.connect(lambda: self.tabs.setCurrentIndex(2))
-        layout.addWidget(quick_btn)
+        btn_row = QHBoxLayout()
+        self.btn_quick_scan = QPushButton("Quick Scan (Downloads)")
+        self.btn_quick_scan.setToolTip("Scan Downloads folder in background")
+        self.btn_quick_scan.clicked.connect(self._quick_scan_clicked)
+        self.btn_full_scan = QPushButton("Full Scan")
+        self.btn_full_scan.setToolTip("Scan user folders (may take a while)")
+        self.btn_full_scan.clicked.connect(self._full_scan_clicked)
+        self.btn_vpn_toggle = QPushButton("VPN: Connect")
+        self.btn_vpn_toggle.setToolTip("Connect or disconnect VPN")
+        self.btn_vpn_toggle.clicked.connect(self._dashboard_vpn_toggle)
+        self.btn_realtime_toggle = QPushButton("Real-time: On")
+        self.btn_realtime_toggle.setToolTip("Toggle real-time file monitoring")
+        self.btn_realtime_toggle.clicked.connect(self._dashboard_realtime_toggle)
+        for b in (self.btn_quick_scan, self.btn_full_scan, self.btn_vpn_toggle, self.btn_realtime_toggle):
+            btn_row.addWidget(b)
+        btn_row.addStretch()
+        layout.addLayout(btn_row)
+        self.scan_progress = QProgressBar()
+        self.scan_progress.setVisible(False)
+        layout.addWidget(self.scan_progress)
+        gb = QGroupBox("URL Scanner")
+        fl = QFormLayout(gb)
+        self.url_input = QLineEdit()
+        self.url_input.setPlaceholderText("Paste URL to scan")
+        fl.addRow("URL:", self.url_input)
+        scan_btn = QPushButton("Scan URL")
+        scan_btn.clicked.connect(self._scan_url_clicked)
+        fl.addRow("", scan_btn)
+        self.scan_result = QPlainTextEdit()
+        self.scan_result.setReadOnly(True)
+        self.scan_result.setMaximumHeight(100)
+        fl.addRow(self.scan_result)
+        layout.addWidget(gb)
         layout.addStretch()
         return w
+
+    def _quick_scan_clicked(self):
+        import os
+        folder = os.path.join(os.environ.get("USERPROFILE", os.path.expanduser("~")), "Downloads")
+        self._run_folder_scan(folder)
+
+    def _full_scan_clicked(self):
+        folder = os.path.expanduser("~")
+        self._run_folder_scan(folder)
+
+    def _run_folder_scan(self, folder: str):
+        self.scan_progress.setVisible(True)
+        self.scan_progress.setRange(0, 0)
+        self.btn_quick_scan.setEnabled(False)
+        self.btn_full_scan.setEnabled(False)
+        thread = QThread()
+        worker = FolderScanWorker(folder, [".exe", ".dll", ".bat", ".ps1", ".vbs", ".js", ".msi"], sensitivity_from_string(self.settings.get("sensitivity", "MEDIUM")))
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.threat_found.connect(lambda r, p: self._on_scan_threat(r, p))
+        worker.progress.connect(lambda cur, tot: self.scan_progress.setRange(0, tot) or self.scan_progress.setValue(cur))
+        worker.finished.connect(lambda: (thread.quit(), self.scan_progress.setVisible(False), self.btn_quick_scan.setEnabled(True), self.btn_full_scan.setEnabled(True)))
+        worker.finished.connect(thread.deleteLater)
+        self._scan_thread = thread
+        self._scan_worker = worker
+        thread.start()
+
+    def _on_scan_threat(self, result, path):
+        entry = {"time": datetime.now().isoformat(), "type": result.threat_type, "severity": result.severity, "url": path, "message": result.message, "confidence": result.confidence}
+        self.threat_log.append(entry)
+        self._stats["threats"] += 1
+        save_threat_log(self.threat_log)
+        self._refresh_stats()
+        self._refresh_threat_table()
+        self._update_dashboard()
+
+    def _dashboard_vpn_toggle(self):
+        if getattr(self, "_vpn_client", None):
+            try:
+                from vpn_client import is_vpn_connected
+                if is_vpn_connected():
+                    self._vpn_disconnect()
+                else:
+                    self._vpn_connect()
+            except Exception:
+                self._vpn_connect()
+        else:
+            self.tabs.setCurrentIndex(4)
+            self._notif_mgr.notify("Cyber Defense", "Configure VPN in Settings first.", "vpn", "info")
+
+    def _dashboard_realtime_toggle(self):
+        self.settings["enable_realtime_monitor"] = not self.settings.get("enable_realtime_monitor", False)
+        save_settings(self.settings)
+        self._start_optional_services()
+        self.btn_realtime_toggle.setText(f"Real-time: {'On' if self.settings['enable_realtime_monitor'] else 'Off'}")
+        self.tray_realtime_a.setText(f"Real-time Protection: {'On' if self.settings['enable_realtime_monitor'] else 'Off'}")
 
     def _threats_tab(self) -> QWidget:
         w = QWidget()
@@ -525,42 +703,44 @@ class CyberDefenseApp(QMainWindow):
         layout.addWidget(clear_btn)
         return w
 
-    def _tools_tab(self) -> QWidget:
+    def _realtime_tab(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
+        layout.addWidget(QLabel("Monitored folders"))
+        self.realtime_paths_text = QPlainTextEdit()
+        self.realtime_paths_text.setReadOnly(True)
+        self.realtime_paths_text.setMaximumHeight(100)
+        self.realtime_paths_text.setPlaceholderText("Enable Real-time Protection in Settings. Monitored paths will appear here.")
+        layout.addWidget(self.realtime_paths_text)
+        layout.addWidget(QLabel("Recent file threats (last 20)"))
+        self.realtime_events_table = QTableWidget(0, 4)
+        self.realtime_events_table.setHorizontalHeaderLabels(["Time", "Path", "Type", "Message"])
+        self.realtime_events_table.horizontalHeader().setStretchLastSection(True)
+        layout.addWidget(self.realtime_events_table)
+        return w
 
-        # URL Scanner
-        gb = QGroupBox("🔗 URL Scanner")
-        gb.setToolTip("Paste any link here to check if it's safe (phishing, tracker, or malware).")
-        fl = QFormLayout(gb)
-        self.url_input = QLineEdit()
-        self.url_input.setPlaceholderText("Paste a URL here (e.g. https://example.com)")
-        self.url_input.setToolTip("Paste the full URL you want to check.")
-        fl.addRow("URL:", self.url_input)
-        scan_btn = QPushButton("Scan URL")
-        scan_btn.setToolTip("Check the URL for threats.")
-        scan_btn.clicked.connect(self._scan_url_clicked)
-        fl.addRow("", scan_btn)
-        self.scan_result = QPlainTextEdit()
-        self.scan_result.setReadOnly(True)
-        self.scan_result.setPlaceholderText("Result will appear here after you click Scan URL.")
-        fl.addRow(self.scan_result)
-        layout.addWidget(gb)
-
-        # System Scan
-        gb2 = QGroupBox("💻 System Security Check")
-        gb2.setToolTip("Quick check: firewall and Windows Defender status.")
-        vl = QVBoxLayout(gb2)
-        sys_btn = QPushButton("Run system security check")
-        sys_btn.setToolTip("Check if Windows Firewall and Defender are enabled.")
-        sys_btn.clicked.connect(self._run_system_scan)
-        vl.addWidget(sys_btn)
-        self.sys_result = QPlainTextEdit()
-        self.sys_result.setReadOnly(True)
-        self.sys_result.setPlaceholderText("Result will appear here after you run the check.")
-        vl.addWidget(self.sys_result)
-        layout.addWidget(gb2)
-
+    def _vpn_tab(self) -> QWidget:
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        layout.addWidget(QLabel("VPN status"))
+        self.lbl_vpn_status = QLabel("Checking...")
+        self.lbl_vpn_status.setStyleSheet("font-size: 14px; font-weight: 600;")
+        layout.addWidget(self.lbl_vpn_status)
+        self.lbl_vpn_killswitch = QLabel("")
+        layout.addWidget(self.lbl_vpn_killswitch)
+        btn_row = QHBoxLayout()
+        self.btn_vpn_connect = QPushButton("Connect")
+        self.btn_vpn_connect.clicked.connect(self._vpn_connect)
+        self.btn_vpn_disconnect = QPushButton("Disconnect")
+        self.btn_vpn_disconnect.clicked.connect(self._vpn_disconnect)
+        btn_row.addWidget(self.btn_vpn_connect)
+        btn_row.addWidget(self.btn_vpn_disconnect)
+        btn_row.addStretch()
+        layout.addLayout(btn_row)
+        layout.addWidget(QLabel("Config path (from Settings):"))
+        self.lbl_vpn_config = QLabel("")
+        self.lbl_vpn_config.setWordWrap(True)
+        layout.addWidget(self.lbl_vpn_config)
         layout.addStretch()
         return w
 
@@ -612,6 +792,36 @@ class CyberDefenseApp(QMainWindow):
         layout.addWidget(QLabel("Sensitivity:"))
         layout.addWidget(self.sensitivity_combo)
 
+        notif_grp = QGroupBox("Notification controls")
+        notif_layout = QVBoxLayout(notif_grp)
+        self.cb_notif_mute_file = QCheckBox("Mute file threat notifications")
+        self.cb_notif_mute_network = QCheckBox("Mute network/phishing notifications")
+        self.cb_notif_mute_vpn = QCheckBox("Mute VPN status notifications")
+        self.cb_notif_mute_behavioral = QCheckBox("Mute behavioral alerts")
+        self.cb_notif_batch = QCheckBox("Batch similar alerts")
+        notif_layout.addWidget(self.cb_notif_mute_file)
+        notif_layout.addWidget(self.cb_notif_mute_network)
+        notif_layout.addWidget(self.cb_notif_mute_vpn)
+        notif_layout.addWidget(self.cb_notif_mute_behavioral)
+        notif_layout.addWidget(self.cb_notif_batch)
+        notif_layout.addWidget(QLabel("Cooldown (seconds):"))
+        self.notif_cooldown_spin = QLineEdit()
+        self.notif_cooldown_spin.setPlaceholderText("25")
+        self.notif_cooldown_spin.setMaximumWidth(80)
+        notif_layout.addWidget(self.notif_cooldown_spin)
+        layout.addWidget(notif_grp)
+
+        sys_grp = QGroupBox("System Security Check")
+        sys_layout = QVBoxLayout(sys_grp)
+        sys_btn = QPushButton("Run system security check")
+        sys_btn.clicked.connect(self._run_system_scan)
+        sys_layout.addWidget(sys_btn)
+        self.sys_result = QPlainTextEdit()
+        self.sys_result.setReadOnly(True)
+        self.sys_result.setMaximumHeight(120)
+        sys_layout.addWidget(self.sys_result)
+        layout.addWidget(sys_grp)
+
         save_btn = QPushButton("Save settings")
         save_btn.setToolTip("Apply and save your preferences.")
         save_btn.clicked.connect(self._save_settings_clicked)
@@ -622,30 +832,87 @@ class CyberDefenseApp(QMainWindow):
     def _setup_tray(self):
         self.tray = QSystemTrayIcon(self)
         self.tray.setToolTip("Cyber Defense — Double-click to open, right-click for menu")
-        try:
-            icon = QApplication.style().standardIcon(QStyle.SP_MessageBoxInformation)
-            self.tray.setIcon(icon)
-        except Exception:
-            pass
+        self._update_tray_icon()
         menu = QMenu()
         show_a = menu.addAction("Show")
         show_a.triggered.connect(self.show_normal)
+        menu.addAction("Dashboard").triggered.connect(lambda: (self.show_normal(), self.tabs.setCurrentIndex(0)))
         menu.addSeparator()
-        pause_a = menu.addAction("Pause")
-        pause_a.triggered.connect(self._toggle_pause)
+        self.tray_realtime_a = menu.addAction("Real-time Protection: On")
+        self.tray_realtime_a.triggered.connect(self._tray_toggle_realtime)
         self.vpn_connect_a = menu.addAction("VPN: Connect")
         self.vpn_connect_a.triggered.connect(self._vpn_connect)
         self.vpn_disconnect_a = menu.addAction("VPN: Disconnect")
         self.vpn_disconnect_a.triggered.connect(self._vpn_disconnect)
         menu.addSeparator()
+        pause_a = menu.addAction("Pause protection")
+        pause_a.triggered.connect(self._toggle_pause)
         settings_a = menu.addAction("Settings")
         settings_a.triggered.connect(self._open_settings)
         menu.addSeparator()
-        exit_a = menu.addAction("Exit")
+        exit_a = menu.addAction("Quit")
         exit_a.triggered.connect(self._quit)
         self.tray.setContextMenu(menu)
         self.tray.activated.connect(self._tray_activated)
         self.tray.show()
+
+    def _update_tray_icon(self):
+        """Update tray icon based on protection status (green=protected, yellow=paused, red=threat)."""
+        try:
+            if self._paused:
+                color = "#fbbf24"
+            elif self._stats.get("threats", 0) > 0 and not self._paused:
+                color = "#ef4444"
+            else:
+                color = "#22c55e"
+            self.tray.setIcon(QIcon(_make_tray_icon_pixmap(color)))
+        except Exception:
+            try:
+                self.tray.setIcon(QApplication.style().standardIcon(QStyle.SP_MessageBoxInformation))
+            except Exception:
+                pass
+
+    def _setup_notification_manager(self):
+        from notification_manager import NotificationManager, NotificationConfig
+        icon_map = [QSystemTrayIcon.Information, QSystemTrayIcon.Warning, QSystemTrayIcon.Critical]
+
+        def show_fn(title, msg, icon_int, msecs):
+            if self.tray.isVisible():
+                self.tray.showMessage(title, msg, icon_map[min(icon_int, 2)], msecs)
+
+        cfg = NotificationConfig(
+            enabled=bool(self.settings.get("enable_notifications", True)),
+            cooldown_seconds=float(self.settings.get("notif_cooldown_seconds", 25)),
+            batch_similar=bool(self.settings.get("notif_batch_similar", True)),
+            mute_file_threats=bool(self.settings.get("notif_mute_file", False)),
+            mute_network_threats=bool(self.settings.get("notif_mute_network", False)),
+            mute_vpn_status=bool(self.settings.get("notif_mute_vpn", False)),
+            mute_behavioral=bool(self.settings.get("notif_mute_behavioral", False)),
+        )
+        self._notif_mgr = NotificationManager(show_fn, cfg)
+
+    def _start_status_timer(self):
+        """Periodic timer: update tray icon, VPN status, flush pending notifications."""
+        self._status_timer = QTimer(self)
+        self._status_timer.timeout.connect(self._on_status_tick)
+        self._status_timer.start(5000)
+
+    def _on_status_tick(self):
+        self._update_tray_icon()
+        if hasattr(self, "_notif_mgr"):
+            self._notif_mgr.flush_pending()
+        try:
+            if hasattr(self, "lbl_vpn_status") and self.lbl_vpn_status:
+                self._refresh_vpn_status()
+        except Exception:
+            pass
+
+    def _tray_toggle_realtime(self):
+        self.settings["enable_realtime_monitor"] = not self.settings.get("enable_realtime_monitor", False)
+        save_settings(self.settings)
+        self._start_optional_services()
+        self.tray_realtime_a.setText(f"Real-time Protection: {'On' if self.settings['enable_realtime_monitor'] else 'Off'}")
+
 
     def _tray_activated(self, reason):
         if reason == QSystemTrayIcon.DoubleClick:
@@ -653,7 +920,7 @@ class CyberDefenseApp(QMainWindow):
 
     def _open_settings(self):
         self.show_normal()
-        self.tabs.setCurrentIndex(3)
+        self.tabs.setCurrentIndex(4)
 
     def _quit(self):
         logger.info("Shutting down Cyber Defense")
@@ -676,6 +943,11 @@ class CyberDefenseApp(QMainWindow):
         if getattr(self, "_vpn_client", None):
             try:
                 self._vpn_client.stop()
+            except Exception:
+                pass
+        if getattr(self, "_status_timer", None):
+            try:
+                self._status_timer.stop()
             except Exception:
                 pass
         save_settings(self.settings)
@@ -710,6 +982,13 @@ class CyberDefenseApp(QMainWindow):
         self.cb_vpn.setChecked(bool(s.get("enable_vpn", False)))
         self.cb_vpn_kill_switch.setChecked(bool(s.get("vpn_kill_switch", False)))
         self.vpn_config_edit.setText(s.get("vpn_config_path", "") or "")
+        if hasattr(self, "cb_notif_mute_file"):
+            self.cb_notif_mute_file.setChecked(bool(s.get("notif_mute_file", False)))
+            self.cb_notif_mute_network.setChecked(bool(s.get("notif_mute_network", False)))
+            self.cb_notif_mute_vpn.setChecked(bool(s.get("notif_mute_vpn", False)))
+            self.cb_notif_mute_behavioral.setChecked(bool(s.get("notif_mute_behavioral", False)))
+            self.cb_notif_batch.setChecked(bool(s.get("notif_batch_similar", True)))
+            self.notif_cooldown_spin.setText(str(int(s.get("notif_cooldown_seconds", 25))))
         sens = s.get("sensitivity", "MEDIUM").capitalize()
         idx = self.sensitivity_combo.findText(sens)
         if idx >= 0:
@@ -730,7 +1009,28 @@ class CyberDefenseApp(QMainWindow):
         self.settings["vpn_kill_switch"] = self.cb_vpn_kill_switch.isChecked()
         self.settings["vpn_config_path"] = self.vpn_config_edit.text().strip()
         self.settings["sensitivity"] = self.sensitivity_combo.currentText().upper()
+        if hasattr(self, "cb_notif_mute_file"):
+            self.settings["notif_mute_file"] = self.cb_notif_mute_file.isChecked()
+            self.settings["notif_mute_network"] = self.cb_notif_mute_network.isChecked()
+            self.settings["notif_mute_vpn"] = self.cb_notif_mute_vpn.isChecked()
+            self.settings["notif_mute_behavioral"] = self.cb_notif_mute_behavioral.isChecked()
+            self.settings["notif_batch_similar"] = self.cb_notif_batch.isChecked()
+            try:
+                self.settings["notif_cooldown_seconds"] = float(self.notif_cooldown_spin.text() or "25")
+            except ValueError:
+                self.settings["notif_cooldown_seconds"] = 25.0
         save_settings(self.settings)
+        if hasattr(self, "_notif_mgr"):
+            from notification_manager import NotificationConfig
+            self._notif_mgr.update_config(NotificationConfig(
+                enabled=bool(self.settings.get("enable_notifications", True)),
+                cooldown_seconds=float(self.settings.get("notif_cooldown_seconds", 25)),
+                batch_similar=bool(self.settings.get("notif_batch_similar", True)),
+                mute_file_threats=bool(self.settings.get("notif_mute_file", False)),
+                mute_network_threats=bool(self.settings.get("notif_mute_network", False)),
+                mute_vpn_status=bool(self.settings.get("notif_mute_vpn", False)),
+                mute_behavioral=bool(self.settings.get("notif_mute_behavioral", False)),
+            ))
         self._service.update_settings(
             sensitivity=sensitivity_from_string(self.settings["sensitivity"]),
             enable_clipboard=self.settings["enable_clipboard"],
@@ -824,38 +1124,49 @@ class CyberDefenseApp(QMainWindow):
                 self._vpn_client = None
         else:
             self._vpn_client = None
+        self._refresh_dashboard_buttons()
+
+    def _refresh_dashboard_buttons(self):
+        try:
+            self.btn_realtime_toggle.setText(f"Real-time: {'On' if self.settings.get('enable_realtime_monitor') else 'Off'}")
+            self.tray_realtime_a.setText(f"Real-time Protection: {'On' if self.settings.get('enable_realtime_monitor') else 'Off'}")
+            if getattr(self, "_vpn_client", None):
+                try:
+                    from vpn_client import is_vpn_connected
+                    self.btn_vpn_toggle.setText("VPN: Disconnect" if is_vpn_connected() else "VPN: Connect")
+                except Exception:
+                    self.btn_vpn_toggle.setText("VPN: Connect")
+            else:
+                self.btn_vpn_toggle.setText("VPN: Connect")
+        except Exception:
+            pass
 
     def _on_vpn_down(self):
         """Kill-switch: VPN dropped while expected on. Alert user (no telemetry)."""
         if self._paused:
             return
-        if self.tray.isVisible():
-            self.tray.showMessage(
-                "Cyber Defense – VPN",
-                "VPN connection dropped. Traffic may be exposed. Reconnect or disable VPN in Settings.",
-                QSystemTrayIcon.Critical,
-                10000,
-            )
+        if hasattr(self, "_notif_mgr"):
+            self._notif_mgr.notify("Cyber Defense – VPN", "VPN connection dropped. Traffic may be exposed.", "vpn", "critical")
 
     def _vpn_connect(self):
         if not getattr(self, "_vpn_client", None):
-            self.tray.showMessage("Cyber Defense", "Enable VPN in Settings and set config path first.", QSystemTrayIcon.Warning, 5000)
+            if hasattr(self, "_notif_mgr"):
+                self._notif_mgr.notify("Cyber Defense", "Enable VPN in Settings and set config path first.", "vpn", "warning")
             return
         ok, msg = self._vpn_client.connect()
-        if ok:
-            self.tray.showMessage("Cyber Defense – VPN", msg or "Connecting...", QSystemTrayIcon.Information, 5000)
-        else:
-            self.tray.showMessage("Cyber Defense – VPN", f"Connect failed: {msg}", QSystemTrayIcon.Warning, 8000)
+        if hasattr(self, "_notif_mgr"):
+            self._notif_mgr.notify("Cyber Defense – VPN", msg or "Connecting...", "vpn", "info" if ok else "warning")
+        self._refresh_vpn_status()
 
     def _vpn_disconnect(self):
         if not getattr(self, "_vpn_client", None):
-            self.tray.showMessage("Cyber Defense", "VPN not configured.", QSystemTrayIcon.Information, 3000)
+            if hasattr(self, "_notif_mgr"):
+                self._notif_mgr.notify("Cyber Defense", "VPN not configured.", "vpn", "info")
             return
         ok, msg = self._vpn_client.disconnect()
-        if ok:
-            self.tray.showMessage("Cyber Defense – VPN", msg or "Disconnected.", QSystemTrayIcon.Information, 5000)
-        else:
-            self.tray.showMessage("Cyber Defense – VPN", f"Disconnect: {msg}", QSystemTrayIcon.Warning, 5000)
+        if hasattr(self, "_notif_mgr"):
+            self._notif_mgr.notify("Cyber Defense – VPN", msg or "Disconnected.", "vpn", "info" if ok else "warning")
+        self._refresh_vpn_status()
 
     def _on_file_threat(self, result: ThreatResult, path: str):
         """Called when real-time monitor detects a file threat; notify and optionally quarantine."""
@@ -875,13 +1186,8 @@ class CyberDefenseApp(QMainWindow):
         self._refresh_stats()
         self._refresh_threat_table()
         self._update_dashboard()
-        if self.settings.get("enable_notifications", True):
-            self.tray.showMessage(
-                "Cyber Defense",
-                f"File threat: {result.message[:60]}",
-                QSystemTrayIcon.Warning,
-                5000,
-            )
+        if hasattr(self, "_notif_mgr"):
+            self._notif_mgr.notify("Cyber Defense", f"File threat: {result.message[:60]}", "file", "warning")
         # Optional: offer quarantine (quarantine module)
         if result.details.get("filepath") or path:
             try:
@@ -911,13 +1217,8 @@ class CyberDefenseApp(QMainWindow):
         self._refresh_stats()
         self._refresh_threat_table()
         self._update_dashboard()
-        if self.settings.get("enable_notifications", True):
-            self.tray.showMessage(
-                "Cyber Defense",
-                f"Behavior: {result.message[:60]}",
-                QSystemTrayIcon.Warning,
-                5000,
-            )
+        if hasattr(self, "_notif_mgr"):
+            self._notif_mgr.notify("Cyber Defense", f"Behavior: {result.message[:60]}", "behavioral", "warning")
 
     def _toggle_pause(self):
         self._paused = not self._paused
@@ -959,6 +1260,7 @@ class CyberDefenseApp(QMainWindow):
             self.btn_pause.setText("⏸ Pause")
         if hasattr(self, "lbl_protection"):
             self.lbl_protection.setText("PAUSED" if self._paused else "ON")
+        self._update_tray_icon()
 
     def _on_threat_detected(self, result: ThreatResult, url: str):
         if self._paused:
@@ -982,13 +1284,9 @@ class CyberDefenseApp(QMainWindow):
         self._refresh_stats()
         self._refresh_threat_table()
         self._update_dashboard()
-        if self.settings.get("enable_notifications", True):
-            self.tray.showMessage(
-                "Cyber Defense",
-                f"{result.threat_type.upper()}: {result.message[:80]}...",
-                QSystemTrayIcon.Warning,
-                3000,
-            )
+        if hasattr(self, "_notif_mgr"):
+            cat = "network" if result.threat_type in ("phishing", "tracker") else "other"
+            self._notif_mgr.notify("Cyber Defense", f"{result.threat_type.upper()}: {result.message[:80]}", cat, "warning")
 
     def _refresh_stats(self):
         self.lbl_threats.setText(str(self._stats['threats']))
@@ -1062,10 +1360,44 @@ class CyberDefenseApp(QMainWindow):
             lines.append(f"💡 {msg}")
         self.sys_result.setPlainText("\n".join(lines))
 
+    def _refresh_vpn_status(self):
+        try:
+            from vpn_client import is_vpn_connected
+            connected = is_vpn_connected()
+            self.lbl_vpn_status.setText("Connected" if connected else "Disconnected")
+            self.lbl_vpn_status.setStyleSheet("color: #22c55e;" if connected else "color: #94a3b8;")
+            cfg = self.settings.get("vpn_config_path", "") or "(not set)"
+            self.lbl_vpn_config.setText(cfg[:80] + "..." if len(cfg) > 80 else cfg)
+            kill = "Kill-switch: On" if self.settings.get("vpn_kill_switch") else "Kill-switch: Off"
+            self.lbl_vpn_killswitch.setText(kill)
+        except Exception:
+            self.lbl_vpn_status.setText("Unknown")
+
+    def _refresh_realtime_tab(self):
+        try:
+            if self.settings.get("enable_realtime_monitor") and getattr(self, "_realtime_monitor", None):
+                paths = [str(p) for p in self._realtime_monitor.watch_paths]
+                self.realtime_paths_text.setPlainText("\n".join(paths))
+            else:
+                self.realtime_paths_text.setPlainText("Real-time monitoring is off. Enable in Settings.")
+            file_threats = [e for e in self.threat_log if e.get("type") in ("malware", "suspicious_file", "eicar_test", "ransomware_honeypot")]
+            self.realtime_events_table.setRowCount(0)
+            for e in list(reversed(file_threats))[:20]:
+                row = self.realtime_events_table.rowCount()
+                self.realtime_events_table.insertRow(row)
+                self.realtime_events_table.setItem(row, 0, QTableWidgetItem(e.get("time", "")[:19]))
+                self.realtime_events_table.setItem(row, 1, QTableWidgetItem((e.get("url", "") or "")[:60]))
+                self.realtime_events_table.setItem(row, 2, QTableWidgetItem(e.get("type", "")))
+                self.realtime_events_table.setItem(row, 3, QTableWidgetItem((e.get("message", "") or "")[:50]))
+        except Exception:
+            pass
+
     def showEvent(self, event):
         super().showEvent(event)
         self._refresh_threat_table()
         self._update_dashboard()
+        self._refresh_vpn_status()
+        self._refresh_realtime_tab()
 
 
 def main():
