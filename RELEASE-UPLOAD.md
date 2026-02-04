@@ -60,7 +60,7 @@ git push origin v2.2.0
 ## What's new in v2.2.0
 
 - **GUI refresh:** Version in window title and header, 4th stat card (Protection ON/PAUSED), Dashboard quick action to Tools, Threat history header, cleaner tab styling.
-- **Core Detection Overhaul:** Real-time monitoring (Downloads, Desktop, Temp, user dirs), EICAR + file hashes, YARA from GitHub, PE heuristics, ransomware honeypots, behavioral CPU spike detection.
+- **Core Detection Overhaul:** Real-time monitoring (Downloads, Desktop, Temp, user dirs), file hashes, YARA from GitHub, PE heuristics, ransomware honeypots, behavioral CPU spike detection.
 - **VPN:** WireGuard connect/disconnect from tray; optional kill-switch alert when VPN drops.
 - **Build:** Windows portable ZIP includes CyberDefense.exe, Run Cyber Defense.bat, README-FIRST.txt.
 

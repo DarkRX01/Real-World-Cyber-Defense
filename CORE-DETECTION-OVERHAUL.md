@@ -7,12 +7,12 @@ This document summarizes the **Core Detection Engine** changes: real-time file s
 - **`realtime_monitor.py`**
   - **`get_default_watch_paths()`** – Returns Downloads, Desktop, Documents, Temp, and user home (platform-aware). Used when real-time monitor is enabled so high-risk dirs are watched 24/7.
   - **Default watch paths** – App now uses these defaults instead of only Downloads/Desktop; Temp and user dirs are included.
-  - **EICAR support** – Files ≤ 2KB are scanned regardless of extension so EICAR in any filename (e.g. `eicar.com`, `eicar.txt`) is detected. Extended `extensions_to_watch` with `.txt`, `.pif`, `.hta`, etc.
+- **No test-virus logic** – The real-time monitor focuses on normal detection paths (hash/YARA/PE/entropy/behavioral) and does not include any special test-file handling.
   - **Optional `watch_paths`** – Constructor accepts `watch_paths=None` and falls back to `get_default_watch_paths()`.
 
 - **`threat_engine.py`**
   - **`compute_file_hash(filepath, algorithm="sha256", max_bytes=None)`** – File hash via hashlib for signatures and forensics. Used in comprehensive scan.
-  - **`scan_file_comprehensive()`** – Now includes SHA256 in `details`, runs PE heuristics before YARA, and ensures EICAR is detected via the same path used by the real-time monitor.
+  - **`scan_file_comprehensive()`** – Includes SHA256 in `details`, runs PE heuristics before YARA, and returns full `filepath` for UI/logging.
 
 ## 2. Signature Database Expansion
 
@@ -64,8 +64,8 @@ This document summarizes the **Core Detection Engine** changes: real-time file s
 
 | File | Change |
 |------|--------|
-| `realtime_monitor.py` | Default watch paths, EICAR via small-file scan, honeypot check in `_handle_event`. |
-| `threat_engine.py` | `compute_file_hash()`, EICAR/hash in comprehensive scan, PE heuristics call. |
+| `realtime_monitor.py` | Default watch paths, honeypot check in `_handle_event`, event rate-limiting. |
+| `threat_engine.py` | `compute_file_hash()`, comprehensive scan (hash + PE heuristics + YARA + entropy), full `filepath` in results. |
 | `app_main.py` | Uses `get_default_watch_paths()`, calls `ensure_honeypot_files()` when starting real-time monitor. |
 | `update_system.py` | `run_all_updates()` runs `run_signature_updates()`. |
 | `detection/behavioral.py` | CPU spike tracking and `_check_cpu_spikes()`. |

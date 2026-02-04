@@ -7,7 +7,7 @@ A complete checklist of everything in this project. Use for releases, audits, or
 ## Core Application
 
 - [ ] **app_main.py** – Main GUI (PyQt5), dashboard, tabs, tray, settings
-- [ ] **threat_engine.py** – URL/phishing/tracker detection, file scanning, EICAR, hashes, entropy
+- [ ] **threat_engine.py** – URL/phishing/tracker detection, file scanning, hashes, entropy, YARA/PE heuristics
 - [ ] **background_service.py** – Clipboard monitoring, URL scanning in background
 - [ ] **realtime_monitor.py** – Watchdog-based file monitoring (Downloads, Temp, user dirs)
 - [ ] **quarantine.py** – Move threats to quarantine, restore, secure delete
@@ -56,7 +56,6 @@ A complete checklist of everything in this project. Use for releases, audits, or
 
 ## Tests
 
-- [ ] **tests/test_eicar.py** – EICAR detection
 - [ ] **tests/test_threat_engine.py** – Threat engine unit tests
 - [ ] **tests/test_background_service.py** – Background service tests
 - [ ] **tests/conftest.py** – Pytest fixtures
@@ -65,7 +64,7 @@ A complete checklist of everything in this project. Use for releases, audits, or
 
 ## CI/CD
 
-- [ ] **.github/workflows/test.yml** – Tests, EICAR, build-and-scan
+- [ ] **.github/workflows/test.yml** – Tests + optional build smoke-check
 - [ ] **.github/workflows/linux-build.yml** – Linux build
 - [ ] **.github/workflows/windows-build.yml** – Windows build
 - [ ] **.github/ISSUE_TEMPLATE/** – Bug, feature, question templates
@@ -98,7 +97,6 @@ A complete checklist of everything in this project. Use for releases, audits, or
 - [ ] Tracker blocking (25+ domains)
 - [ ] Clipboard monitoring
 - [ ] Real-time file monitoring (Downloads, Desktop, Temp, user dirs)
-- [ ] EICAR test file detection
 - [ ] File hashing (SHA256)
 - [ ] YARA rule scanning
 - [ ] PE heuristics (packed EXE)

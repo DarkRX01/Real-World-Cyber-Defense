@@ -1,8 +1,8 @@
 """
 Event-driven real-time file monitoring.
-Windows: ReadDirectoryChangesW (or watchdog); Linux: inotify via watchdog.
-Watches Downloads, Temp, and user dirs 24/7. Scans new/modified files instantly
-with hashlib hashes and content checks (EICAR, YARA, entropy).
+Windows: watchdog; Linux: inotify via watchdog.
+Watches common high-risk folders (Downloads, Desktop, Temp, user dirs). Scans new/modified
+files with the normal engine (hash/YARA/PE heuristics/entropy) without any test-virus logic.
 """
 
 import os
@@ -21,10 +21,6 @@ from threat_engine import ThreatResult
 
 # Prefer watchdog for cross-platform; Windows can use ReadDirectoryChangesW for lower latency
 USE_WATCHDOG = True
-
-# EICAR test file is small; scan any file under this size for EICAR content regardless of extension
-EICAR_MAX_SCAN_BYTES = 2048
-
 
 def get_default_watch_paths() -> List[str]:
     """
@@ -58,7 +54,7 @@ def get_default_watch_paths() -> List[str]:
 
 
 def _scan_callback_default(path: str) -> Optional[ThreatResult]:
-    """Default: use threat_engine comprehensive scan (EICAR + hash + YARA + entropy)."""
+    """Default: use threat_engine comprehensive scan (hash + YARA + PE heuristics + entropy)."""
     from threat_engine import scan_file_comprehensive, Sensitivity
     return scan_file_comprehensive(path, Sensitivity.MEDIUM)
 
@@ -84,7 +80,7 @@ class RealtimeFileMonitor:
         self.scan_callback = scan_callback or _scan_callback_default
         self.extensions_to_watch = (extensions_to_watch or [
             ".exe", ".dll", ".scr", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".msi", ".com",
-            ".txt", ".pif", ".hta", ".reg", ".jse", ".wsf", ".vbe",
+            ".pif", ".hta", ".reg", ".jse", ".wsf", ".vbe",
         ])
         self._observer = None
         self._stop = threading.Event()
@@ -104,12 +100,6 @@ class RealtimeFileMonitor:
         suf = p.suffix.lower()
         if suf in self.extensions_to_watch:
             return True
-        # EICAR: scan small files regardless of extension (eicar.com, eicar, etc.)
-        try:
-            if p.stat().st_size <= EICAR_MAX_SCAN_BYTES:
-                return True
-        except OSError:
-            pass
         return False
 
     def _handle_event(self, path: str) -> None:

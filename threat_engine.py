@@ -81,9 +81,6 @@ LOOKALIKE_PATTERNS = [
     (r"netf1ix\.", "netflix"), (r"netfl1x\.", "netflix"),
 ]
 
-# EICAR standard antivirus test string (any AV must detect this)
-EICAR_TEST_STRING = r"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
-
 # Dangerous file extensions for downloads
 DANGEROUS_EXTENSIONS = frozenset([
     ".exe", ".dll", ".scr", ".bat", ".cmd", ".vbs", ".vbe", ".js", ".jse",
@@ -509,59 +506,14 @@ def compute_file_hash(filepath: str, algorithm: str = "sha256", max_bytes: Optio
         return None
 
 
-def is_eicar_bytes(data: bytes) -> bool:
-    """Return True if data contains the EICAR test string (any variant)."""
-    if not data:
-        return False
-    return (
-        EICAR_TEST_STRING.encode("ascii") in data
-        or b"EICAR-STANDARD-ANTIVIRUS-TEST-FILE" in data
-        or (b"EICAR" in data and b"ANTIVIRUS-TEST-FILE" in data)
-    )
-
-
-def scan_file_eicar(filepath: str) -> Optional[ThreatResult]:
-    """Detect EICAR test file. Returns ThreatResult if EICAR found else None."""
-    try:
-        path = Path(filepath).resolve()
-        if not path.exists() or not path.is_file():
-            return None
-        with path.open("rb") as f:
-            data = f.read(1024)
-        if not is_eicar_bytes(data):
-            return None
-        return ThreatResult(
-            is_threat=True,
-            threat_type="eicar_test",
-            severity="low",
-            confidence=100,
-            message="EICAR standard antivirus test file detected",
-            details={"filepath": filepath},
-        )
-    except (OSError, IOError):
-        # AV may block opening EICAR files (e.g. Errno 22 on Windows)
-        pass
-    except Exception:
-        pass
-    return None
-
-
 def scan_file_comprehensive(filepath: str, sensitivity: Sensitivity = Sensitivity.MEDIUM) -> ThreatResult:
     """
-    Comprehensive file scan: EICAR + hash + optional YARA + PE heuristics + entropy + extension + size.
-    Content checks and hashlib hashes for real-time detection.
+    Comprehensive file scan: hash + optional YARA + PE heuristics + entropy + extension + size.
+    Note: This engine intentionally does NOT include any special test-virus handling.
     """
     path = Path(filepath)
     # Always include location for UI/logging (even if downstream detectors don't set it)
     details_extra = {"filepath": str(path)}
-
-    # EICAR test file (standard AV test) — must detect via file hooks
-    eicar_result = scan_file_eicar(filepath)
-    if eicar_result is not None:
-        details_extra["sha256"] = compute_file_hash(filepath, max_bytes=1024 * 1024)
-        if details_extra.get("sha256"):
-            eicar_result.details.update(details_extra)
-        return eicar_result
 
     # File hash for signatures and forensics (first 10MB for speed)
     file_hash = compute_file_hash(filepath, max_bytes=10 * 1024 * 1024)

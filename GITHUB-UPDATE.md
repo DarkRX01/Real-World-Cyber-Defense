@@ -48,7 +48,7 @@ git add GETTING_STARTED_DESKTOP.md TROUBLESHOOTING.md
 ```bash
 git commit -m "Core Detection Overhaul + VPN integration
 
-- Real-time FS: default watch paths (Downloads/Desktop/Temp/user dirs), EICAR + hashlib hashes
+- Real-time FS: default watch paths (Downloads/Desktop/Temp/user dirs), hashlib hashes
 - Signature DB: YARA from GitHub, ClamAV daily/main via signature_updater + update_system
 - PE heuristics (detection/heuristic_pe.py), behavioral CPU spike detection
 - Ransomware shield: honeypots + mass-change detector; honeypot check in realtime monitor
@@ -105,7 +105,7 @@ git push -u origin main
 
 ## Checklist before pushing
 
-- [ ] `pytest tests/` passes (or at least `tests/test_eicar.py` and `tests/test_threat_engine.py`)
+- [ ] `pytest tests/` passes
 - [ ] No secrets or API keys in committed files
 - [ ] README and USER-GUIDE links are correct
 - [ ] CHANGELOG [Unreleased] section reflects Core Detection Overhaul + VPN

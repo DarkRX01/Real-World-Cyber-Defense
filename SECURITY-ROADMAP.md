@@ -76,9 +76,8 @@ This tool is currently **educational/demonstration-level**, not production-grade
 - **Problem:** Unknown effectiveness
 - **Real Solution Needed:**
   - GitHub Actions CI/CD
-  - EICAR test file detection
-  - WannaCry sample tests (sandboxed)
-  - Automated security tests
+  - Automated unit/integration tests for URL/file monitors
+  - Sandboxed test corpuses (safe fixtures only)
 
 ### 10. **Poor Packaging** ❌
 - **Current:** Folder with DLLs
@@ -186,11 +185,10 @@ class ThreatHandler(FileSystemEventHandler):
 ### 5. Add Proper Testing
 ```python
 # tests/test_detection.py
-def test_eicar_detection():
-    # EICAR test file
-    eicar = "X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
-    result = scan_data(eicar)
-    assert result.is_threat == True
+def test_basic_detection():
+    # Safe fixtures only (no test-virus strings)
+    result = scan_url("https://paypa1.com/login")
+    assert result.is_threat is True
 ```
 
 ---

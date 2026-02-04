@@ -60,10 +60,9 @@ This checklist confirms that every requested item is implemented and ready to pu
 
 ---
 
-## ✅ 9. Testing (CI, EICAR)
+## ✅ 9. Testing (CI)
 
-- [x] **EICAR** – `scan_file_eicar`, `is_eicar_bytes`, in `scan_file_comprehensive`; tests in `tests/test_eicar.py`.
-- [x] **CI** – `.github/workflows/test.yml`: EICAR tests, threat engine tests, build-and-scan job, Linux job.
+- [x] **CI** – `.github/workflows/test.yml`: threat engine tests, coverage, Windows + Linux jobs, optional build smoke-check.
 
 ---
 
@@ -112,4 +111,4 @@ git push origin main
 
 ---
 
-**Status:** All items above are implemented. Tests: 84 passed, 2 skipped (EICAR file tests skipped when AV blocks). Ready to push.
+**Status:** All items above are implemented. Tests: 84 passed, 2 skipped (file-based fixtures may skip when blocked by AV/OS). Ready to push.

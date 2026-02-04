@@ -1,4 +1,4 @@
-# CI: build -> scan EICAR -> scan detection tests -> pass/fail
+# CI: tests + basic build smoke-check
 name: Security Tests
 
 on:
@@ -24,13 +24,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-
-      - name: Run EICAR detection tests (must pass)
-        run: |
-          pytest tests/test_eicar.py -v
-        env:
-          # EICAR test is the canonical AV test; CI fails if we don't detect it
-          CYBER_DEFENSE_STRICT_EICAR: "1"
 
       - name: Run threat engine tests
         run: |
@@ -64,25 +57,9 @@ jobs:
           pip install pyinstaller
           python build-safe-exe.py
 
-      - name: Verify EICAR detection with built engine
+      - name: Build smoke-check (no test-virus)
         run: |
-          python -c "
-          from pathlib import Path
-          import tempfile
-          import sys
-          sys.path.insert(0, '.')
-          from threat_engine import scan_file_comprehensive, EICAR_TEST_STRING
-          with tempfile.NamedTemporaryFile(mode='wb', suffix='.com', delete=False) as f:
-              f.write(EICAR_TEST_STRING.encode('ascii'))
-              path = f.name
-          try:
-              r = scan_file_comprehensive(path)
-              assert r.is_threat, 'EICAR must be detected as threat'
-              assert r.threat_type == 'eicar_test'
-              print('EICAR scan: PASS')
-          finally:
-              Path(path).unlink(missing_ok=True)
-          "
+          python build-safe-exe.py
 
       - name: Create portable zip
         shell: pwsh
@@ -106,9 +83,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-
-      - name: Run EICAR tests
-        run: pytest tests/test_eicar.py -v
 
       - name: Run all tests
         run: pytest tests/ -v
