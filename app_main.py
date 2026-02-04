@@ -141,9 +141,9 @@ def default_settings() -> dict:
         "enable_download_scan": True,
         "enable_url_scan": True,
         "start_minimized": True,
-        "enable_realtime_monitor": False,
+        "enable_realtime_monitor": True,
         "enable_auto_updates": True,
-        "enable_behavioral_monitor": False,
+        "enable_behavioral_monitor": True,
     }
 
 
@@ -288,10 +288,11 @@ class CyberDefenseApp(QMainWindow):
         # Top bar with header and controls
         top_bar = QWidget()
         top_bar.setStyleSheet("""
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
-                                       stop:0 #6366f1, stop:0.5 #8b5cf6, stop:1 #d946ef);
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop:0 #4f46e5, stop:0.35 #6366f1, stop:0.7 #818cf8, stop:1 #a5b4fc);
             border-radius: 16px;
             padding: 24px;
+            border: 1px solid rgba(255,255,255,0.12);
         """)
         top_layout = QHBoxLayout(top_bar)
         
@@ -304,17 +305,18 @@ class CyberDefenseApp(QMainWindow):
         
         header = QLabel("🛡️ Cyber Defense")
         header.setStyleSheet("""
-            font-size: 32px; 
-            font-weight: bold; 
+            font-size: 28px;
+            font-weight: bold;
             color: #ffffff;
             background: transparent;
+            letter-spacing: 0.5px;
         """)
         title_layout.addWidget(header)
         
-        subheader = QLabel("Real-time threat detection & security monitoring")
+        subheader = QLabel("Real-time protection · Phishing · Trackers · File monitoring")
         subheader.setStyleSheet("""
-            font-size: 13px; 
-            color: rgba(255, 255, 255, 0.85);
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
             background: transparent;
         """)
         title_layout.addWidget(subheader)
@@ -325,10 +327,10 @@ class CyberDefenseApp(QMainWindow):
         # Right side - Status badge
         status_badge = QWidget()
         status_badge.setStyleSheet("""
-            background-color: rgba(74, 222, 128, 0.15);
-            border: 2px solid #4ade80;
-            border-radius: 12px;
-            padding: 12px 20px;
+            background-color: rgba(74, 222, 128, 0.2);
+            border: 1px solid rgba(74, 222, 128, 0.6);
+            border-radius: 10px;
+            padding: 10px 18px;
         """)
         status_badge_layout = QHBoxLayout(status_badge)
         status_badge_layout.setSpacing(8)
@@ -406,11 +408,15 @@ class CyberDefenseApp(QMainWindow):
 
         # Buttons
         btn_layout = QHBoxLayout()
-        self.btn_pause = QPushButton("⏸️ Pause")
+        btn_layout.setSpacing(12)
+        self.btn_pause = QPushButton("⏸ Pause")
+        self.btn_pause.setMinimumWidth(120)
         self.btn_pause.clicked.connect(self._toggle_pause)
-        self.btn_settings = QPushButton("⚙️ Settings")
+        self.btn_settings = QPushButton("⚙ Settings")
+        self.btn_settings.setMinimumWidth(120)
         self.btn_settings.clicked.connect(lambda: self.tabs.setCurrentIndex(3))
-        self.btn_close = QPushButton("❌ Close")
+        self.btn_close = QPushButton("Close")
+        self.btn_close.setMinimumWidth(100)
         self.btn_close.clicked.connect(self.close)
         for b in (self.btn_pause, self.btn_settings, self.btn_close):
             btn_layout.addWidget(b)
@@ -435,11 +441,14 @@ class CyberDefenseApp(QMainWindow):
     def _threats_tab(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
+        layout.setSpacing(12)
         self.threat_table = QTableWidget(0, 5)
         self.threat_table.setHorizontalHeaderLabels(["Time", "Type", "Severity", "URL / Details", "Message"])
         self.threat_table.horizontalHeader().setStretchLastSection(True)
+        self.threat_table.setAlternatingRowColors(True)
         layout.addWidget(self.threat_table)
         clear_btn = QPushButton("Clear log")
+        clear_btn.setMaximumWidth(120)
         clear_btn.clicked.connect(self._clear_threat_log)
         layout.addWidget(clear_btn)
         return w
@@ -765,7 +774,7 @@ class CyberDefenseApp(QMainWindow):
                 border-radius: 12px;
                 padding: 12px 20px;
             """)
-            self.btn_pause.setText("▶️ Resume")
+            self.btn_pause.setText("▶ Resume")
         else:
             self._service.start()
             self.status_label.setText("ACTIVE")
@@ -783,7 +792,7 @@ class CyberDefenseApp(QMainWindow):
                 border-radius: 12px;
                 padding: 12px 20px;
             """)
-            self.btn_pause.setText("⏸️ Pause")
+            self.btn_pause.setText("⏸ Pause")
 
     def _on_threat_detected(self, result: ThreatResult, url: str):
         if self._paused:
@@ -892,7 +901,7 @@ class CyberDefenseApp(QMainWindow):
 
 
 def main():
-    logger.info("Starting Cyber Defense v2.0.0")
+    logger.info("Starting Cyber Defense v2.1.0")
     logger.info(f"Platform: {sys.platform}")
     logger.info(f"Python: {sys.version}")
     
@@ -906,129 +915,107 @@ def main():
         logger.warning(f"Could not set Fusion style: {e}")
         # Continue anyway with default style
     app.setStyleSheet("""
-        * {
-            font-family: 'Segoe UI', Arial, sans-serif;
-        }
-        QMainWindow, QWidget {
-            background-color: #1a1d2e;
-            color: #e0e6f0;
-        }
-        QLabel {
-            color: #e0e6f0;
-            background-color: transparent;
-        }
+        * { font-family: 'Segoe UI', Arial, sans-serif; }
+        QMainWindow, QWidget { background-color: #0f1117; color: #e2e8f0; }
+        QLabel { color: #e2e8f0; background-color: transparent; }
         QPushButton {
-            background-color: #2d3250;
-            color: #ffffff;
-            border: 2px solid #424769;
+            background-color: #1e293b;
+            color: #f1f5f9;
+            border: 1px solid #334155;
             border-radius: 8px;
-            padding: 10px 20px;
+            padding: 10px 18px;
             font-weight: 600;
             font-size: 10pt;
         }
         QPushButton:hover {
-            background-color: #424769;
-            border-color: #676f9d;
+            background-color: #334155;
+            border-color: #475569;
         }
-        QPushButton:pressed {
-            background-color: #676f9d;
-        }
+        QPushButton:pressed { background-color: #475569; }
         QLineEdit, QPlainTextEdit, QTextEdit {
-            background-color: #252842;
-            color: #e0e6f0;
-            border: 2px solid #424769;
-            border-radius: 6px;
-            padding: 8px;
-            selection-background-color: #424769;
+            background-color: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px;
+            selection-background-color: #475569;
         }
         QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus {
-            border-color: #7c83fd;
+            border-color: #6366f1;
         }
         QComboBox {
-            background-color: #252842;
-            color: #e0e6f0;
-            border: 2px solid #424769;
-            border-radius: 6px;
-            padding: 6px;
-            min-height: 25px;
+            background-color: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 8px;
+            min-height: 28px;
         }
-        QComboBox:hover {
-            border-color: #7c83fd;
-        }
+        QComboBox:hover { border-color: #6366f1; }
         QComboBox::drop-down {
             border: none;
-            background-color: #424769;
-            width: 30px;
-            border-top-right-radius: 4px;
-            border-bottom-right-radius: 4px;
+            background-color: #334155;
+            width: 28px;
+            border-top-right-radius: 6px;
+            border-bottom-right-radius: 6px;
         }
         QComboBox::down-arrow {
             image: none;
             border-left: 5px solid transparent;
             border-right: 5px solid transparent;
-            border-top: 6px solid #e0e6f0;
-            margin-right: 10px;
+            border-top: 6px solid #e2e8f0;
+            margin-right: 8px;
         }
         QComboBox QAbstractItemView {
-            background-color: #252842;
-            color: #e0e6f0;
-            border: 2px solid #424769;
-            selection-background-color: #424769;
+            background-color: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            selection-background-color: #475569;
         }
-        QCheckBox {
-            color: #e0e6f0;
-            spacing: 8px;
-            background-color: transparent;
-        }
+        QCheckBox { color: #e2e8f0; spacing: 10px; background-color: transparent; }
         QCheckBox::indicator {
-            width: 18px;
-            height: 18px;
-            border: 2px solid #424769;
+            width: 18px; height: 18px;
+            border: 1px solid #334155;
             border-radius: 4px;
-            background-color: #252842;
+            background-color: #1e293b;
         }
-        QCheckBox::indicator:hover {
-            border-color: #7c83fd;
-        }
+        QCheckBox::indicator:hover { border-color: #6366f1; }
         QCheckBox::indicator:checked {
-            background-color: #7c83fd;
-            border-color: #7c83fd;
+            background-color: #6366f1;
+            border-color: #6366f1;
             image: url(none);
         }
         QTabWidget::pane {
-            border: 2px solid #424769;
-            border-radius: 8px;
-            background-color: #252842;
-            top: -2px;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            background-color: #1e293b;
+            top: -1px;
         }
         QTabBar::tab {
-            background-color: #2d3250;
-            color: #a0a8c0;
-            border: 2px solid #424769;
+            background-color: #0f1117;
+            color: #94a3b8;
+            border: 1px solid #334155;
             border-bottom: none;
-            border-top-left-radius: 6px;
-            border-top-right-radius: 6px;
-            padding: 10px 20px;
-            margin-right: 4px;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            padding: 10px 18px;
+            margin-right: 2px;
             font-weight: 600;
-            min-width: 80px;
+            min-width: 90px;
         }
         QTabBar::tab:selected {
-            background-color: #252842;
-            color: #7c83fd;
-            border-bottom: 2px solid #252842;
+            background-color: #1e293b;
+            color: #818cf8;
+            border-bottom: 1px solid #1e293b;
         }
-        QTabBar::tab:hover:!selected {
-            background-color: #424769;
-            color: #e0e6f0;
-        }
+        QTabBar::tab:hover:!selected { background-color: #334155; color: #e2e8f0; }
         QTableWidget {
-            background-color: #252842;
-            color: #e0e6f0;
-            border: 2px solid #424769;
-            border-radius: 6px;
-            gridline-color: #424769;
-            alternate-background-color: #2d3250;
+            background-color: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            gridline-color: #334155;
+            alternate-background-color: #0f1117;
         }
         QTableWidget::item {
             padding: 8px;
@@ -1038,76 +1025,60 @@ def main():
             background-color: #424769;
             color: #ffffff;
         }
-        QTableWidget::item:hover {
-            background-color: #2d3250;
-        }
+        QTableWidget::item:hover { background-color: #334155; }
         QHeaderView::section {
-            background-color: #2d3250;
-            color: #a0a8c0;
+            background-color: #0f1117;
+            color: #94a3b8;
             border: none;
-            padding: 10px;
-            font-weight: 700;
-            border-bottom: 2px solid #424769;
-        }
-        QHeaderView::section:hover {
-            background-color: #424769;
-        }
-        QGroupBox {
-            border: 2px solid #424769;
-            border-radius: 8px;
-            margin-top: 12px;
-            padding-top: 16px;
+            padding: 10px 12px;
             font-weight: 600;
-            color: #7c83fd;
+            border-bottom: 1px solid #334155;
+        }
+        QHeaderView::section:hover { background-color: #334155; }
+        QGroupBox {
+            border: 1px solid #334155;
+            border-radius: 10px;
+            margin-top: 14px;
+            padding: 16px 14px 14px 14px;
+            font-weight: 600;
+            color: #818cf8;
             background-color: transparent;
         }
         QGroupBox::title {
             subcontrol-origin: margin;
-            left: 12px;
+            left: 14px;
             padding: 0 8px;
-            background-color: #1a1d2e;
+            background-color: #0f1117;
         }
         QScrollBar:vertical {
-            background-color: #252842;
-            width: 12px;
-            border-radius: 6px;
+            background-color: #1e293b;
+            width: 10px;
+            border-radius: 5px;
         }
         QScrollBar::handle:vertical {
-            background-color: #424769;
-            border-radius: 6px;
-            min-height: 30px;
+            background-color: #475569;
+            border-radius: 5px;
+            min-height: 28px;
         }
-        QScrollBar::handle:vertical:hover {
-            background-color: #676f9d;
-        }
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-            height: 0px;
-        }
+        QScrollBar::handle:vertical:hover { background-color: #64748b; }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
         QScrollBar:horizontal {
-            background-color: #252842;
-            height: 12px;
-            border-radius: 6px;
+            background-color: #1e293b;
+            height: 10px;
+            border-radius: 5px;
         }
         QScrollBar::handle:horizontal {
-            background-color: #424769;
-            border-radius: 6px;
-            min-width: 30px;
+            background-color: #475569;
+            border-radius: 5px;
+            min-width: 28px;
         }
-        QScrollBar::handle:horizontal:hover {
-            background-color: #676f9d;
-        }
+        QScrollBar::handle:horizontal:hover { background-color: #64748b; }
         QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
             width: 0px;
         }
-        QMessageBox {
-            background-color: #1a1d2e;
-        }
-        QMessageBox QLabel {
-            color: #e0e6f0;
-        }
-        QMessageBox QPushButton {
-            min-width: 80px;
-        }
+        QMessageBox { background-color: #0f1117; }
+        QMessageBox QLabel { color: #e2e8f0; }
+        QMessageBox QPushButton { min-width: 80px; }
     """)
     
     try:

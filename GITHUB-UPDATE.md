@@ -1,5 +1,7 @@
 # Update Everything on GitHub
 
+**Latest build:** The updated EXE (new GUI, v2.1.0) is in `releases/CyberDefense-Windows-Portable.zip`. A copy was also placed in your **Downloads** folder. Extract and run **Run Cyber Defense.bat** or **CyberDefense.exe**.
+
 Follow these steps to push all changes to your GitHub repository.
 
 ---
@@ -82,9 +84,9 @@ git push -u origin main
 
 1. On GitHub: **Releases** → **Draft a new release**.
 2. **Tag:** `v2.1.0` (create new tag).
-3. **Title:** `v2.1.0 – Production improvements & user-friendly EXE`.
+3. **Title:** `v2.1.0 – New GUI, real-time protection, user-friendly EXE`.
 4. **Description:** Copy from [CHANGELOG.md](CHANGELOG.md) section `[2.1.0]`.
-5. Attach **CyberDefense-Windows-Portable.zip** (build it first with `python build-safe-exe.py` then zip `dist/CyberDefense/`).
+5. Attach **releases/CyberDefense-Windows-Portable.zip** (already built; same zip is in your Downloads folder).
 6. Publish release.
 
 ---

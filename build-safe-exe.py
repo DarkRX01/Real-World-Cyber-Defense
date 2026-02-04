@@ -13,7 +13,7 @@ def build_safe_windows_exe():
     """Build Windows executable that's less likely to trigger antivirus"""
     
     print("=" * 70)
-    print("🛡️ Real-World Cyber Defense - Antivirus-Friendly EXE Builder")
+    print("Real-World Cyber Defense - Antivirus-Friendly EXE Builder")
     print("=" * 70)
     print()
     
@@ -21,11 +21,11 @@ def build_safe_windows_exe():
     try:
         import PyInstaller
     except ImportError:
-        print("📦 Installing PyInstaller...")
+        print("[*] Installing PyInstaller...")
         subprocess.run([sys.executable, "-m", "pip", "install", "pyinstaller"], check=True)
     
     # Install requirements
-    print("📥 Installing dependencies...")
+    print("[*] Installing dependencies...")
     subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"], check=True)
     
     # Create safe PyInstaller spec file
@@ -139,7 +139,7 @@ VSVersionInfo(
         f.write(version_info)
     
     # Build command with antivirus-friendly options
-    print("\n🔨 Building Antivirus-Friendly Windows EXE...")
+    print("\n[*] Building Antivirus-Friendly Windows EXE...")
     print("-" * 70)
     
     build_cmd = [
@@ -159,18 +159,18 @@ VSVersionInfo(
     # Check if build was successful
     exe_path = Path("dist/CyberDefense/CyberDefense.exe")
     if exe_path.exists():
-        print("✅ BUILD SUCCESSFUL!")
+        print("BUILD SUCCESSFUL!")
         print()
-        print(f"📁 Location: {exe_path.absolute()}")
-        print(f"📊 Size: {exe_path.stat().st_size / 1024 / 1024:.2f} MB")
+        print(f"Location: {exe_path.absolute()}")
+        print(f"Size: {exe_path.stat().st_size / 1024 / 1024:.2f} MB")
         print()
-        print("🛡️ Antivirus-Friendly Features:")
-        print("   ✓ No suspicious imports")
-        print("   ✓ Proper version information")
-        print("   ✓ Clean build configuration")
-        print("   ✓ No UPX compression")
+        print("Antivirus-Friendly Features:")
+        print("   - No suspicious imports")
+        print("   - Proper version information")
+        print("   - Clean build configuration")
+        print("   - No UPX compression")
         print()
-        print("🚀 Next Steps:")
+        print("Next Steps:")
         print("   1. Test the executable locally")
         print("   2. Upload to VirusTotal for analysis")
         print("   3. Submit to antivirus vendors if needed")
@@ -192,7 +192,7 @@ start "" "dist\\CyberDefense\\CyberDefense.exe"
         with open('test-exe.bat', 'w') as f:
             f.write(test_script)
             
-        print("📝 Created test-exe.bat for testing")
+        print("Created test-exe.bat for testing")
 
         try:
             portable_dir = Path("dist/CyberDefense")
@@ -259,10 +259,10 @@ Need help?  https://github.com/DarkRX01/Real-World-Cyber-Defense
             pass
         
     else:
-        print("❌ BUILD FAILED")
+        print("BUILD FAILED")
         print("Check error messages above")
         print()
-        print("💡 Troubleshooting:")
+        print("Troubleshooting:")
         print("   1. Ensure PyQt5 is installed: pip install PyQt5")
         print("   2. Ensure app_main.py is in the same directory")
         print("   3. Check for syntax errors in Python files")
