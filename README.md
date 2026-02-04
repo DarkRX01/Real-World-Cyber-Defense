@@ -2,7 +2,7 @@
 
 A **user-friendly** desktop app for threat detection and security monitoring on Windows (and Linux from source). Protects you from phishing, trackers, and suspicious downloads with a simple tray icon and clear notifications.
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue)
+![Version](https://img.shields.io/badge/version-2.1.0-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -93,14 +93,18 @@ The built folder will include **Run Cyber Defense.bat** and **README-FIRST.txt**
 
 ---
 
-## ⚠️ Disclaimer
+## 🛡️ How it helps you
 
-This is **educational / light security** software, not a full replacement for Windows Defender or a commercial antivirus.
+Cyber Defense is built to be **actually useful** as an extra layer of protection:
 
-- ✅ Good for: phishing/tracker awareness, URL checks, learning, extra layer.
-- ❌ Not: kernel-level protection, certified antivirus, or guaranteed zero-day protection.
+- **Real-time file monitoring** – Watches Downloads and Desktop; scans new files as soon as they appear (no 5‑minute delay).
+- **URL & clipboard** – Catches phishing and suspicious links before you open them.
+- **Behavioral monitoring** – Flags suspicious process behavior (e.g. encoded PowerShell, download-style commands).
+- **YARA + heuristics** – Optional rule-based and entropy-based detection when you add rules or use the built-in logic.
+- **Quarantine** – Moves threats to a safe folder instead of deleting; you can restore or remove later.
+- **Auto-updating blocklists** – Pulls ClamAV, URLhaus, and PhishTank so definitions stay current.
 
-**For strong security:** Use Windows Defender (or your AV), keep the system updated, and use backups. See [SECURITY-ROADMAP.md](SECURITY-ROADMAP.md) for limitations and [PRODUCTION-IMPROVEMENTS.md](PRODUCTION-IMPROVEMENTS.md) for what’s implemented.
+**Best setup:** Run Cyber Defense **together with** Windows Defender (or your main AV). Defender handles kernel-level and certified AV; Cyber Defense adds real-time file/URL/behavior monitoring and quarantine. See [PRODUCTION-IMPROVEMENTS.md](PRODUCTION-IMPROVEMENTS.md) for what’s under the hood and [SECURITY-ROADMAP.md](SECURITY-ROADMAP.md) for future kernel/driver options.
 
 ---
 
