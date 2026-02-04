@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No additional changes yet._
 
+## [2.3.0] - 2026-02-04
+
+### Added
+- **Notification hardening:** Queue + cooldown + batching to prevent Qt spam crashes; flush timer max 3 popups per tick; per-category mute; always include full path/URL.
+- **Realtime debounce:** Global + per-path rate limiting in `realtime_monitor` to survive unzip/file storms; logging instead of silent exceptions.
+- **Self-exclusion:** Real-time threats from inside the app bundle are skipped (prevents self-quarantine / self-detection).
+- **Release packaging:** ASCII-safe console output; creates `CyberDefense-Windows-Portable.zip` + alias `CyberDefense-Windows.zip`.
+- **Theme polish:** Fluent-ish dark QSS (rounded corners, softer borders, styled progress bars, consistent colors).
+
+### Changed
+- Version bump to 2.3.0 (app banner, README badge, version_info).
+- Threat log cap (keeps ~900 when over 1000) to avoid memory blow-up under heavy loads.
+
 ## [2.2.0] - 2026-02-04
 
 ### Added

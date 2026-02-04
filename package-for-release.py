@@ -50,7 +50,7 @@ def create_release_package():
                 # Avoid noisy output (and unicode) for large zips
                 pass
         
-        # Add README
+        # Add README directly via writestr (avoids temp file locks on Windows)
         readme_content = """Cyber Defense - Windows Portable Edition
 ==========================================
 
@@ -62,11 +62,8 @@ INSTALLATION:
 
 IMPORTANT:
 ----------
-⚠️  DO NOT move CyberDefense.exe out of its folder!
-⚠️  Keep all files together in the same folder
-
-The application needs all the DLL files and dependencies
-that are included in this folder.
+- DO NOT move CyberDefense.exe out of its folder.
+- Keep all files together in the same folder (DLLs, etc.).
 
 FIRST RUN:
 ----------
@@ -75,17 +72,17 @@ If Windows SmartScreen shows a warning:
   2. Click "Run anyway"
 
 If your antivirus blocks it:
-  - This is a false positive (common for new unsigned apps)
+  - False positives are common for unsigned apps
   - Add an exception for the CyberDefense folder
 
 FEATURES:
 ---------
-✓ Real-time threat detection
-✓ Clipboard URL monitoring
-✓ Tracker blocking
-✓ Phishing detection
-✓ Modern GUI dashboard
-✓ System tray integration
+- Real-time threat detection
+- Clipboard URL monitoring
+- Tracker blocking
+- Phishing detection
+- Modern GUI dashboard
+- System tray integration
 
 TROUBLESHOOTING:
 ----------------
@@ -98,18 +95,13 @@ If the app doesn't start:
 SYSTEM REQUIREMENTS:
 --------------------
 - Windows 10 or later
-- 100 MB free disk space
+- ~100 MB free disk space
 - Internet connection (optional, for updates)
 
 For support and updates:
 https://github.com/DarkRX01/Real-World-Cyber-Defense
 """
-        
-        # Write README inside the ZIP
-        readme_path = releases_dir / "README.txt"
-        readme_path.write_text(readme_content, encoding="utf-8")
-        zipf.write(readme_path, "README.txt")
-        readme_path.unlink()  # Delete temp file
+        zipf.writestr("README.txt", readme_content)
         print("Added: README.txt")
     
     print()

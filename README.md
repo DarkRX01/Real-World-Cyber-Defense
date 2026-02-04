@@ -2,7 +2,7 @@
 
 A **user-friendly** desktop app for threat detection and security monitoring on Windows (and Linux from source). Protects you from phishing, trackers, and suspicious downloads with a simple tray icon and clear notifications.
 
-![Version](https://img.shields.io/badge/version-2.2.0-blue)
+![Version](https://img.shields.io/badge/version-2.3.0-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 

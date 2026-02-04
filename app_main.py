@@ -53,7 +53,7 @@ from PyQt5.QtWidgets import (
     QFrame,
 )
 
-APP_VERSION = "2.2.0"
+APP_VERSION = "2.3.0"
 
 from threat_engine import (
     ThreatResult,
