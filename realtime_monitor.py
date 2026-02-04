@@ -8,6 +8,8 @@ with hashlib hashes and content checks (EICAR, YARA, entropy).
 import os
 import sys
 import threading
+import time
+import logging
 from pathlib import Path
 from typing import Callable, List, Optional
 
@@ -88,6 +90,12 @@ class RealtimeFileMonitor:
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._lock = threading.Lock()
+        self._log = logging.getLogger("CyberDefense.RealtimeMonitor")
+        # Rate-limiting to avoid event floods (e.g. unzip storms)
+        self._last_event_by_path: dict[str, float] = {}
+        self._min_interval_per_path_sec = 0.75
+        self._min_interval_global_sec = 0.05
+        self._last_global_event = 0.0
 
     def _should_scan(self, path: str) -> bool:
         p = Path(path)
@@ -105,22 +113,40 @@ class RealtimeFileMonitor:
         return False
 
     def _handle_event(self, path: str) -> None:
+        now = time.monotonic()
+        # Global throttle: prevent tight loops from crushing the UI/event loop
+        if (now - self._last_global_event) < self._min_interval_global_sec:
+            return
+        self._last_global_event = now
+        # Per-path throttle
+        try:
+            key = str(Path(path).resolve())
+        except Exception:
+            key = path
+        last = self._last_event_by_path.get(key, 0.0)
+        if (now - last) < self._min_interval_per_path_sec:
+            return
+        self._last_event_by_path[key] = now
+
         # Ransomware honeypot: if a honeypot file is touched, alert immediately
         try:
             from ransomware_shield import is_honeypot_path, honeypot_threat_result
             if is_honeypot_path(path):
                 self.on_threat(honeypot_threat_result(path), path)
                 return
-        except Exception:
-            pass
+        except Exception as e:
+            self._log.debug("honeypot check failed: %s", e)
         if not self._should_scan(path):
             return
         try:
             result = self.scan_callback(path)
             if result and result.is_threat:
                 self.on_threat(result, path)
-        except Exception:
-            pass
+        except (PermissionError, OSError) as e:
+            # Common during downloads/unzips; don't crash, but keep signal for debugging
+            self._log.debug("scan blocked for %s: %s", path, e)
+        except Exception as e:
+            self._log.exception("scan error for %s: %s", path, e)
 
     def start(self) -> None:
         if USE_WATCHDOG:
@@ -156,6 +182,7 @@ class RealtimeFileMonitor:
             if wp.exists():
                 self._observer.schedule(handler, str(wp), recursive=True)
         self._observer.start()
+        self._log.info("Realtime monitor started (watchdog). paths=%d", len(self.watch_paths))
 
     def _start_polling_fallback(self) -> None:
         """Fallback: poll every 2s for new files (worse than event-driven)."""
@@ -180,6 +207,7 @@ class RealtimeFileMonitor:
 
         self._thread = threading.Thread(target=poll, daemon=True)
         self._thread.start()
+        self._log.warning("Realtime monitor using polling fallback. paths=%d", len(self.watch_paths))
 
     def stop(self) -> None:
         self._stop.set()
@@ -187,9 +215,10 @@ class RealtimeFileMonitor:
             try:
                 self._observer.stop()
                 self._observer.join(timeout=5.0)
-            except Exception:
-                pass
+            except Exception as e:
+                self._log.debug("observer stop failed: %s", e)
             self._observer = None
         if self._thread is not None:
             self._thread.join(timeout=5.0)
             self._thread = None
+        self._log.info("Realtime monitor stopped")

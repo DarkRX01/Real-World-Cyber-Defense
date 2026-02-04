@@ -552,7 +552,8 @@ def scan_file_comprehensive(filepath: str, sensitivity: Sensitivity = Sensitivit
     Content checks and hashlib hashes for real-time detection.
     """
     path = Path(filepath)
-    details_extra = {}
+    # Always include location for UI/logging (even if downstream detectors don't set it)
+    details_extra = {"filepath": str(path)}
 
     # EICAR test file (standard AV test) — must detect via file hooks
     eicar_result = scan_file_eicar(filepath)
