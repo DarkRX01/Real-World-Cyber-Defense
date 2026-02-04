@@ -22,7 +22,7 @@ CRITICAL = "critical"
 class NotificationConfig:
     """User-configurable notification settings."""
     enabled: bool = True
-    cooldown_seconds: float = 25.0
+    cooldown_seconds: float = 30.0
     batch_similar: bool = True
     mute_file_threats: bool = False
     mute_network_threats: bool = False

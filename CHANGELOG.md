@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No additional changes yet._
 
+## [2.3.1] - 2026-02-04
+
+### Changed
+- Removed test-virus handling and test-focused CI checks.
+- Cleaner dark UI (no rainbow gradients), improved Threat history table (sortable + context menu actions).
+- VPN flow hardened: connect/disconnect run off the UI thread; best-effort kill-switch enforcement on Windows via firewall rule (requires admin).
+- Notifications: default cooldown set to 30 seconds.
+
 ## [2.3.0] - 2026-02-04
 
 ### Added
@@ -26,7 +34,7 @@ _No additional changes yet._
 
 ### Added
 - **GUI:** Version (v2.2.0) in window title and header; 4th stat card “Protection” (ON/PAUSED); Dashboard “Quick actions” with “Open Tools → Scan URL”; Threat tab “Threat history” header; cleaner Dashboard/Threats styling.
-- **Core Detection Overhaul:** Real-time FS (Downloads, Desktop, Temp, user dirs), EICAR + hashlib hashes, YARA from GitHub, PE heuristics, ransomware honeypots, behavioral CPU spike detection, anomaly detector (see CORE-DETECTION-OVERHAUL.md).
+- **Core Detection Overhaul:** Real-time FS (Downloads, Desktop, Temp, user dirs), hashlib hashes, YARA from GitHub, PE heuristics, ransomware honeypots, behavioral CPU spike detection, anomaly detector (see CORE-DETECTION-OVERHAUL.md).
 - **VPN:** WireGuard connect/disconnect from tray; kill-switch alert when VPN drops; Settings: VPN config path and kill-switch.
 
 ### Changed
@@ -42,7 +50,7 @@ _No additional changes yet._
 - **YARA engine** (`detection/yara_engine.py`) – File scanning with YARA; use rules from MalwareBazaar in `yara_rules/`. Wired into comprehensive file scan when `yara-python` and rules are present.
 - **Static ML detector** (`detection/ml_detector.py`) – scikit-learn on entropy, file size, PE sections (optional `pefile`). Heuristic fallback when no model is trained.
 - **Behavioral monitor** (`detection/behavioral.py`) – Process creation monitoring (psutil); flags suspicious LOLBins (e.g. encoded PowerShell). Optional in Settings: “Behavioral monitoring”.
-- **EICAR detection** – Standard AV test string detection in `scan_file_eicar()` and `scan_file_comprehensive()`; `is_eicar_bytes()` for in-memory checks.
+_Removed in later versions: test-virus-specific detection is no longer included._
 
 **Real-time & updates**
 - **Event-driven file monitor** (`realtime_monitor.py`) – Watchdog-based; no polling. Watches Downloads/Desktop (optional in Settings). Scans new files immediately; optional quarantine.
@@ -56,7 +64,7 @@ _No additional changes yet._
 - **README.md** – Rewritten for users: quick download/run, features table, docs links, troubleshooting table.
 
 **CI & quality**
-- **CI** (`.github/workflows/test.yml`) – EICAR tests (bytes + file when not blocked by AV), threat engine tests, coverage; **build-and-scan** job (build exe, verify EICAR); Linux tests.
+- **CI** (`.github/workflows/test.yml`) – Threat engine tests, coverage; Windows + Linux jobs; optional build smoke-check.
 - **Packaging** – WiX MSI (`packaging/wix/`, `build-msi.ps1`), AppImage and DMG scripts (`packaging/`).
 
 **Docs & GitHub**

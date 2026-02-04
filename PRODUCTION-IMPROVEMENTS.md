@@ -26,14 +26,12 @@ This document summarizes the fixes and additions made to address the production-
 - **Start minimized**: Setting “Start minimized to tray (no window popup)” (default ON). No main window on startup; only tray icon and Win10-style notifications for critical threats.
 - **Settings**: “Real-time file monitoring”, “Auto-update definitions every 2 hours” added in Settings tab.
 
-## 6. CI (build → EICAR → pass/fail)
+## 6. CI (tests + build smoke-check)
 
 - **`.github/workflows/test.yml`**:
-  - Run EICAR detection tests (bytes-level `is_eicar_bytes` always asserted; file-based test may skip if AV blocks EICAR locally).
   - Run threat engine tests and full test suite with coverage.
-  - Job `build-and-scan`: build exe with PyInstaller, then verify EICAR detection with the built engine.
+  - Optional build smoke-check job on Windows.
   - Linux job: same tests on Ubuntu.
-- **EICAR**: `threat_engine.scan_file_eicar` / `scan_file_comprehensive` detect the standard EICAR string; `is_eicar_bytes()` for in-memory checks.
 
 ## 7. Packaging
 
@@ -56,5 +54,5 @@ This document summarizes the fixes and additions made to address the production-
 
 ## Notes
 
-- **WannaCry sample in CI**: Do not ship or scan real malware in CI. EICAR is the standard AV test; the workflow uses EICAR for “malware sample” verification.
+- **Malware samples in CI**: Do not ship or scan real malware samples in CI. Keep CI focused on unit/integration tests and safe fixtures.
 - **EV cert**: Until you have an EV cert and sign builds, Defender/SmartScreen may still flag the app; document exclusions and see `ANTIVIRUS-FIXES.md` and `SIGNING-SELF-DEFENSE.md`.

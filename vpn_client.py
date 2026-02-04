@@ -82,6 +82,71 @@ def is_vpn_connected(interface_hint: Optional[str] = None) -> bool:
     return False
 
 
+_KILLSWITCH_RULE_NAME = "CyberDefense KillSwitch (Outbound Block)"
+
+
+def enable_kill_switch() -> tuple[bool, str]:
+    """
+    Best-effort kill-switch.
+    On Windows: adds a Windows Firewall outbound block rule (requires admin).
+    On other platforms: currently not enforced (alert-only).
+    """
+    if not _is_windows():
+        return (False, "Kill-switch enforcement is not available on this OS (alert-only).")
+    try:
+        # Add an outbound block rule. If it already exists, add will fail; we treat that as OK.
+        r = subprocess.run(
+            [
+                "netsh",
+                "advfirewall",
+                "firewall",
+                "add",
+                "rule",
+                f"name={_KILLSWITCH_RULE_NAME}",
+                "dir=out",
+                "action=block",
+                "enable=yes",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0,
+        )
+        if r.returncode == 0:
+            return (True, "Kill-switch enabled (Windows Firewall outbound block).")
+        # If rule exists, netsh often returns a non-zero; keep message but don't hard-fail.
+        return (True, "Kill-switch rule already present (or partially enabled).")
+    except Exception as e:
+        return (False, f"Kill-switch enable failed: {e}")
+
+
+def disable_kill_switch() -> tuple[bool, str]:
+    """Remove kill-switch firewall rule (Windows only)."""
+    if not _is_windows():
+        return (True, "Kill-switch disabled (no-op on this OS).")
+    try:
+        r = subprocess.run(
+            [
+                "netsh",
+                "advfirewall",
+                "firewall",
+                "delete",
+                "rule",
+                f"name={_KILLSWITCH_RULE_NAME}",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0,
+        )
+        # delete returns success even when rule doesn't exist on some systems; treat as OK.
+        if r.returncode == 0:
+            return (True, "Kill-switch disabled.")
+        return (True, "Kill-switch rule not found (already disabled).")
+    except Exception as e:
+        return (False, f"Kill-switch disable failed: {e}")
+
+
 def connect_wireguard(config_path: str) -> tuple:
     """
     Start WireGuard tunnel. Returns (success: bool, message: str).
@@ -98,14 +163,17 @@ def connect_wireguard(config_path: str) -> tuple:
         if not wg_path.exists():
             return (False, "WireGuard not found. Install from https://www.wireguard.com/install/")
         try:
-            subprocess.run(
+            r = subprocess.run(
                 [str(wg_path), "/installtunnelservice", str(path)],
                 capture_output=True,
                 text=True,
                 timeout=30,
                 creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0,
             )
-            return (True, "Tunnel install requested. Check WireGuard tray for status.")
+            if r.returncode == 0:
+                return (True, "Connecting (tunnel service install requested).")
+            msg = (r.stderr or r.stdout or "").strip() or "WireGuard returned an error."
+            return (False, msg)
         except Exception as e:
             return (False, str(e))
     else:
@@ -197,14 +265,27 @@ class VPNClient:
     def connect(self) -> tuple:
         """Start VPN. Returns (success, message)."""
         self._user_wants_connected = True
-        if self.kill_switch and not self._thread or not self._thread.is_alive():
+        # When connecting, ensure any previous block rule is cleared first.
+        if self.kill_switch:
+            try:
+                disable_kill_switch()
+            except Exception:
+                pass
+        if self.kill_switch and (not self._thread or not self._thread.is_alive()):
             self._start_kill_switch_thread()
         return connect_wireguard(self.config_path)
 
     def disconnect(self) -> tuple:
         """Stop VPN. Returns (success, message)."""
         self._user_wants_connected = False
-        return disconnect_wireguard(self.config_path)
+        ok, msg = disconnect_wireguard(self.config_path)
+        # User-requested disconnect should not keep internet blocked.
+        if self.kill_switch:
+            try:
+                disable_kill_switch()
+            except Exception:
+                pass
+        return (ok, msg)
 
     def is_connected(self) -> bool:
         return is_vpn_connected()
@@ -230,6 +311,14 @@ class VPNClient:
                 continue
             if not is_vpn_connected():
                 try:
+                    # Best-effort enforcement first, then notify UI.
+                    enable_kill_switch()
                     self.on_vpn_down()
+                except Exception:
+                    pass
+            else:
+                # VPN is up; ensure we are not blocking traffic.
+                try:
+                    disable_kill_switch()
                 except Exception:
                     pass

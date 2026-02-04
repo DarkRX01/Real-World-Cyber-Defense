@@ -2,7 +2,7 @@
 
 A **user-friendly** desktop app for threat detection and security monitoring on Windows (and Linux from source). Protects you from phishing, trackers, and suspicious downloads with a simple tray icon and clear notifications.
 
-![Version](https://img.shields.io/badge/version-2.3.0-blue)
+![Version](https://img.shields.io/badge/version-2.3.1-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -53,7 +53,7 @@ A **user-friendly** desktop app for threat detection and security monitoring on 
 | 🔗 **URL & phishing detection** | Scans URLs and clipboard links for phishing and suspicious patterns. |
 | 🚨 **Tracker blocking** | Detects known tracking/analytics domains. |
 | 📋 **Clipboard monitoring** | Optional; scans URLs when you copy them. |
-| 📁 **Real-time file monitoring** | Optional; watches Downloads, Desktop, **Temp**, and user dirs 24/7. EICAR + hashes + YARA + PE heuristics. |
+| 📁 **Real-time file monitoring** | Optional; watches Downloads, Desktop, **Temp**, and user dirs 24/7. Hashes + YARA + PE heuristics + entropy heuristics. |
 | 🛡 **Ransomware shield** | Honeypot files in key dirs; mass-encryption detection. |
 | 🔄 **Auto-updates** | Optional; YARA from GitHub + ClamAV, URLhaus, PhishTank every 2 hours. |
 | 🗂 **Quarantine** | Detected file threats can be moved to quarantine (restore later). |
@@ -100,7 +100,7 @@ The built folder will include **Run Cyber Defense.bat** and **README-FIRST.txt**
 
 Cyber Defense is built to be **actually useful** as an extra layer of protection:
 
-- **Real-time file monitoring** – Watches Downloads, Desktop, Temp, and user dirs 24/7; scans new files instantly (EICAR, hashes, YARA, PE heuristics). Ransomware honeypots in key dirs.
+- **Real-time file monitoring** – Watches Downloads, Desktop, Temp, and user dirs 24/7; scans new files instantly (hashes, YARA, PE heuristics). Ransomware honeypots in key dirs.
 - **URL & clipboard** – Catches phishing and suspicious links before you open them.
 - **Behavioral monitoring** – Flags suspicious process behavior and anomalous CPU spikes (e.g. mining/encryption).
 - **YARA + PE heuristics** – Auto-updating YARA rules from GitHub; packed-EXE and entropy-based detection.

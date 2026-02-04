@@ -53,7 +53,7 @@ from PyQt5.QtWidgets import (
     QFrame,
 )
 
-APP_VERSION = "2.3.0"
+APP_VERSION = "2.3.1"
 
 from threat_engine import (
     ThreatResult,
@@ -165,7 +165,7 @@ def default_settings() -> dict:
         "enable_vpn": False,
         "vpn_config_path": "",
         "vpn_kill_switch": False,
-        "notif_cooldown_seconds": 25.0,
+        "notif_cooldown_seconds": 30.0,
         "notif_batch_similar": True,
         "notif_mute_file": False,
         "notif_mute_network": False,
@@ -278,19 +278,36 @@ class VPNConnectWorker(QObject):
     """Runs VPN connect/disconnect in background."""
     finished = pyqtSignal(bool, str)
 
-    def __init__(self, config_path: str, connect: bool):
+    def __init__(self, vpn_client_obj, connect: bool):
         super().__init__()
-        self.config_path = config_path
+        self.vpn_client_obj = vpn_client_obj
         self.connect = connect
 
     def run(self):
         try:
+            if not self.vpn_client_obj:
+                self.finished.emit(False, "VPN is not configured.")
+                return
             if self.connect:
-                from vpn_client import connect_wireguard
-                ok, msg = connect_wireguard(self.config_path)
+                ok, msg = self.vpn_client_obj.connect()
             else:
-                from vpn_client import disconnect_wireguard
-                ok, msg = disconnect_wireguard(self.config_path)
+                ok, msg = self.vpn_client_obj.disconnect()
+            # After action, poll real status briefly so UI is accurate.
+            try:
+                from vpn_client import is_vpn_connected
+                import time as _time
+                deadline = _time.monotonic() + (20.0 if self.connect else 10.0)
+                while _time.monotonic() < deadline:
+                    connected = is_vpn_connected()
+                    if self.connect and connected:
+                        ok = True
+                        break
+                    if (not self.connect) and (not connected):
+                        ok = True
+                        break
+                    _time.sleep(0.5)
+            except Exception:
+                pass
             self.finished.emit(ok, msg)
         except Exception as e:
             self.finished.emit(False, str(e))
@@ -410,14 +427,13 @@ class CyberDefenseApp(QMainWindow):
         layout.setSpacing(16)
         layout.setContentsMargins(24, 24, 24, 24)
 
-        # Top bar with header and controls
+        # Top bar (clean header)
         top_bar = QWidget()
         top_bar.setStyleSheet("""
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 #4f46e5, stop:0.35 #6366f1, stop:0.7 #818cf8, stop:1 #a5b4fc);
-            border-radius: 16px;
-            padding: 24px;
-            border: 1px solid rgba(255,255,255,0.12);
+            background-color: rgba(15, 23, 42, 0.85);
+            border-radius: 14px;
+            padding: 18px 18px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
         """)
         top_layout = QHBoxLayout(top_bar)
         
@@ -491,69 +507,53 @@ class CyberDefenseApp(QMainWindow):
         
         layout.addWidget(top_bar)
 
-        # Stats cards with modern gradient design
+        # Stats cards (clean, non-gradient)
         stats_container = QWidget()
         stats_layout = QHBoxLayout(stats_container)
-        stats_layout.setSpacing(20)
-        
-        # Threats card - Red gradient
-        threats_card = self._create_stat_card(
-            icon="🔥",
-            title="Threats Blocked",
-            gradient="qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #dc2626, stop:1 #991b1b)",
-            glow="rgba(239, 68, 68, 0.3)"
-        )
-        self.lbl_threats = self._create_stat_number("0", "#ffffff")
-        threats_card.layout().addWidget(self.lbl_threats)
-        stats_layout.addWidget(threats_card)
-        
-        # Trackers card - Orange gradient
-        trackers_card = self._create_stat_card(
-            icon="🚨",
-            title="Trackers Found",
-            gradient="qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #f59e0b, stop:1 #d97706)",
-            glow="rgba(245, 158, 11, 0.3)"
-        )
-        self.lbl_trackers = self._create_stat_number("0", "#ffffff")
-        trackers_card.layout().addWidget(self.lbl_trackers)
-        stats_layout.addWidget(trackers_card)
-        
-        # Phishing card - Cyan gradient
-        phishing_card = self._create_stat_card(
-            icon="🎯",
-            title="Phishing Detected",
-            gradient="qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #06b6d4, stop:1 #0891b2)",
-            glow="rgba(6, 182, 212, 0.3)"
-        )
-        self.lbl_phishing = self._create_stat_number("0", "#ffffff")
-        phishing_card.layout().addWidget(self.lbl_phishing)
-        stats_layout.addWidget(phishing_card)
-        
-        # Protection status card - green when active
-        protection_card = self._create_stat_card(
-            icon="🔒",
-            title="Protection",
-            gradient="qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #059669, stop:1 #047857)",
-            glow="rgba(16, 185, 129, 0.3)"
-        )
+        stats_layout.setSpacing(16)
+        stats_layout.setContentsMargins(0, 0, 0, 0)
+
+        def make_stat_card(title: str, value_widget: QWidget, hint: str = "") -> QFrame:
+            card = QFrame()
+            card.setObjectName("StatCard")
+            card_l = QVBoxLayout(card)
+            card_l.setContentsMargins(16, 14, 16, 14)
+            card_l.setSpacing(6)
+            t = QLabel(title)
+            t.setObjectName("StatTitle")
+            card_l.addWidget(t)
+            card_l.addWidget(value_widget)
+            if hint:
+                h = QLabel(hint)
+                h.setObjectName("StatHint")
+                h.setWordWrap(True)
+                card_l.addWidget(h)
+            card_l.addStretch()
+            return card
+
+        def make_big_number() -> QLabel:
+            lbl = QLabel("0")
+            lbl.setObjectName("StatValue")
+            return lbl
+
+        self.lbl_threats = make_big_number()
+        self.lbl_trackers = make_big_number()
+        self.lbl_phishing = make_big_number()
         self.lbl_protection = QLabel("ON")
-        self.lbl_protection.setStyleSheet("""
-            font-size: 28px;
-            font-weight: bold;
-            color: #ffffff;
-            background: transparent;
-        """)
-        protection_card.layout().addWidget(self.lbl_protection)
-        stats_layout.addWidget(protection_card)
-        
+        self.lbl_protection.setObjectName("ProtectionValue")
+
+        stats_layout.addWidget(make_stat_card("Threats blocked", self.lbl_threats, "All-time (this session)"))
+        stats_layout.addWidget(make_stat_card("Trackers flagged", self.lbl_trackers, "Low severity"))
+        stats_layout.addWidget(make_stat_card("Phishing blocked", self.lbl_phishing, "High risk URLs"))
+        stats_layout.addWidget(make_stat_card("Protection", self.lbl_protection, "Real-time + clipboard"))
+
         layout.addWidget(stats_container)
 
-        # Tabs: Dashboard, Threats, Real-time, VPN, Settings
+        # Tabs: Dashboard, Threats, VPN, Settings
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
         self.tabs.addTab(self._dashboard_tab(), "Dashboard")
         self.tabs.addTab(self._threats_tab(), "Threats")
-        self.tabs.addTab(self._realtime_tab(), "Real-time")
         self.tabs.addTab(self._vpn_tab(), "VPN")
         self.tabs.addTab(self._settings_tab(), "Settings")
         layout.addWidget(self.tabs)
@@ -566,7 +566,7 @@ class CyberDefenseApp(QMainWindow):
         self.btn_pause.clicked.connect(self._toggle_pause)
         self.btn_settings = QPushButton("Settings")
         self.btn_settings.setMinimumWidth(120)
-        self.btn_settings.clicked.connect(lambda: self.tabs.setCurrentIndex(4))
+        self.btn_settings.clicked.connect(lambda: self.tabs.setCurrentIndex(3))
         self.btn_close = QPushButton("Close")
         self.btn_close.setMinimumWidth(100)
         self.btn_close.clicked.connect(self.close)
@@ -674,7 +674,7 @@ class CyberDefenseApp(QMainWindow):
             except Exception:
                 self._vpn_connect()
         else:
-            self.tabs.setCurrentIndex(4)
+            self.tabs.setCurrentIndex(3)
             self._notif_mgr.notify("Cyber Defense", "Configure VPN in Settings first.", "vpn", "info")
 
     def _dashboard_realtime_toggle(self):
@@ -688,35 +688,41 @@ class CyberDefenseApp(QMainWindow):
         w = QWidget()
         layout = QVBoxLayout(w)
         layout.setSpacing(12)
-        threats_header = QLabel("🔴 Threat history")
-        threats_header.setStyleSheet("font-size: 14px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;")
+        threats_header = QLabel("Threat history")
+        threats_header.setObjectName("SectionHeader")
         layout.addWidget(threats_header)
-        self.threat_table = QTableWidget(0, 5)
-        self.threat_table.setHorizontalHeaderLabels(["Time", "Type", "Severity", "URL / Details", "Message"])
-        self.threat_table.horizontalHeader().setStretchLastSection(True)
-        self.threat_table.setAlternatingRowColors(True)
-        self.threat_table.setMinimumHeight(280)
-        layout.addWidget(self.threat_table)
-        clear_btn = QPushButton("Clear log")
-        clear_btn.setMaximumWidth(120)
-        clear_btn.clicked.connect(self._clear_threat_log)
-        layout.addWidget(clear_btn)
-        return w
 
-    def _realtime_tab(self) -> QWidget:
-        w = QWidget()
-        layout = QVBoxLayout(w)
-        layout.addWidget(QLabel("Monitored folders"))
-        self.realtime_paths_text = QPlainTextEdit()
-        self.realtime_paths_text.setReadOnly(True)
-        self.realtime_paths_text.setMaximumHeight(100)
-        self.realtime_paths_text.setPlaceholderText("Enable Real-time Protection in Settings. Monitored paths will appear here.")
-        layout.addWidget(self.realtime_paths_text)
-        layout.addWidget(QLabel("Recent file threats (last 20)"))
-        self.realtime_events_table = QTableWidget(0, 4)
-        self.realtime_events_table.setHorizontalHeaderLabels(["Time", "Path", "Type", "Message"])
-        self.realtime_events_table.horizontalHeader().setStretchLastSection(True)
-        layout.addWidget(self.realtime_events_table)
+        self.threat_table = QTableWidget(0, 6)
+        self.threat_table.setHorizontalHeaderLabels(["Time", "Severity", "Type", "Location", "Message", "Action"])
+        self.threat_table.setAlternatingRowColors(True)
+        self.threat_table.setSortingEnabled(True)
+        self.threat_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.threat_table.setSelectionMode(QTableWidget.SingleSelection)
+        self.threat_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.threat_table.setWordWrap(False)
+        self.threat_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.threat_table.customContextMenuRequested.connect(self._threats_context_menu)
+        try:
+            header = self.threat_table.horizontalHeader()
+            header.setStretchLastSection(False)
+            header.setSectionResizeMode(0, header.ResizeToContents)  # time
+            header.setSectionResizeMode(1, header.ResizeToContents)  # severity
+            header.setSectionResizeMode(2, header.ResizeToContents)  # type
+            header.setSectionResizeMode(3, header.Stretch)           # location
+            header.setSectionResizeMode(4, header.Stretch)           # message
+            header.setSectionResizeMode(5, header.ResizeToContents)  # action
+        except Exception:
+            pass
+        self.threat_table.setMinimumHeight(320)
+        layout.addWidget(self.threat_table)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        clear_btn = QPushButton("Clear log")
+        clear_btn.setMaximumWidth(140)
+        clear_btn.clicked.connect(self._clear_threat_log)
+        btn_row.addWidget(clear_btn)
+        layout.addLayout(btn_row)
         return w
 
     def _vpn_tab(self) -> QWidget:
@@ -924,7 +930,7 @@ class CyberDefenseApp(QMainWindow):
 
     def _open_settings(self):
         self.show_normal()
-        self.tabs.setCurrentIndex(4)
+        self.tabs.setCurrentIndex(3)
 
     def _quit(self):
         logger.info("Shutting down Cyber Defense")
@@ -1157,20 +1163,61 @@ class CyberDefenseApp(QMainWindow):
             if hasattr(self, "_notif_mgr"):
                 self._notif_mgr.notify("Cyber Defense", "Enable VPN in Settings and set config path first.", "vpn", "warning")
             return
-        ok, msg = self._vpn_client.connect()
-        if hasattr(self, "_notif_mgr"):
-            self._notif_mgr.notify("Cyber Defense – VPN", msg or "Connecting...", "vpn", "info" if ok else "warning")
-        self._refresh_vpn_status()
+        self._set_vpn_ui_busy(True, "Connecting…")
+        thread = QThread()
+        worker = VPNConnectWorker(self._vpn_client, True)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(lambda ok, msg: self._on_vpn_action_done(thread, worker, ok, msg))
+        thread.start()
 
     def _vpn_disconnect(self):
         if not getattr(self, "_vpn_client", None):
             if hasattr(self, "_notif_mgr"):
                 self._notif_mgr.notify("Cyber Defense", "VPN not configured.", "vpn", "info")
             return
-        ok, msg = self._vpn_client.disconnect()
-        if hasattr(self, "_notif_mgr"):
-            self._notif_mgr.notify("Cyber Defense – VPN", msg or "Disconnected.", "vpn", "info" if ok else "warning")
+        self._set_vpn_ui_busy(True, "Disconnecting…")
+        thread = QThread()
+        worker = VPNConnectWorker(self._vpn_client, False)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(lambda ok, msg: self._on_vpn_action_done(thread, worker, ok, msg))
+        thread.start()
+
+    def _set_vpn_ui_busy(self, busy: bool, status_text: str = "") -> None:
+        try:
+            if hasattr(self, "btn_vpn_connect"):
+                self.btn_vpn_connect.setEnabled(not busy)
+            if hasattr(self, "btn_vpn_disconnect"):
+                self.btn_vpn_disconnect.setEnabled(not busy)
+            if hasattr(self, "btn_vpn_toggle"):
+                self.btn_vpn_toggle.setEnabled(not busy)
+            if status_text and hasattr(self, "lbl_vpn_status"):
+                self.lbl_vpn_status.setText(status_text)
+        except Exception:
+            pass
+
+    def _on_vpn_action_done(self, thread: QThread, worker: QObject, ok: bool, msg: str) -> None:
+        try:
+            thread.quit()
+            thread.wait(2000)
+        except Exception:
+            pass
+        try:
+            worker.deleteLater()
+            thread.deleteLater()
+        except Exception:
+            pass
+        self._set_vpn_ui_busy(False)
         self._refresh_vpn_status()
+        self._refresh_dashboard_buttons()
+        if hasattr(self, "_notif_mgr"):
+            self._notif_mgr.notify(
+                "Cyber Defense – VPN",
+                msg or ("Connected" if ok else "VPN action failed"),
+                "vpn",
+                "info" if ok else "warning",
+            )
 
     def _on_file_threat(self, result: ThreatResult, path: str):
         """Called when real-time monitor detects a file threat; notify and optionally quarantine."""
@@ -1204,6 +1251,7 @@ class CyberDefenseApp(QMainWindow):
             "url": path,  # location for UI
             "message": result.message,
             "confidence": result.confidence,
+            "action": "",
         }
         self.threat_log.append(entry)
         self._stats["threats"] += 1
@@ -1219,15 +1267,25 @@ class CyberDefenseApp(QMainWindow):
                 "file",
                 "warning",
             )
-        # Optional: offer quarantine (quarantine module)
+        # Default action: quarantine (copy) to reduce risk; user can restore from the Threats context menu.
         if result.details.get("filepath") or path:
             try:
                 from quarantine import quarantine_file
-                q = quarantine_file(path, threat_type=result.threat_type, threat_message=result.message, copy_instead_of_move=True)
+                q = quarantine_file(
+                    path,
+                    threat_type=result.threat_type,
+                    threat_message=result.message,
+                    copy_instead_of_move=True,
+                )
                 if "error" not in q:
+                    entry["action"] = "Quarantined"
+                    entry["quarantine_path"] = q.get("quarantine_path")
+                    entry["quarantine_meta"] = q.get("metadata_path")
                     logger.info("Quarantined: %s", q.get("quarantine_path"))
+                else:
+                    entry["action"] = "Detected"
             except Exception:
-                pass
+                entry["action"] = "Detected"
 
     def _on_behavioral_threat(self, result: ThreatResult):
         """Called when behavioral monitor detects a suspicious process."""
@@ -1343,14 +1401,30 @@ class CyberDefenseApp(QMainWindow):
     def _refresh_threat_table(self):
         t = self.threat_table
         t.setRowCount(0)
-        for e in reversed(self.threat_log[-200:]):
+        for e in reversed(self.threat_log[-400:]):
             row = t.rowCount()
             t.insertRow(row)
-            t.setItem(row, 0, QTableWidgetItem(e.get("time", "")[:19]))
-            t.setItem(row, 1, QTableWidgetItem(e.get("type", "")))
-            t.setItem(row, 2, QTableWidgetItem(e.get("severity", "")))
-            t.setItem(row, 3, QTableWidgetItem(e.get("url", "")[:80]))
-            t.setItem(row, 4, QTableWidgetItem(e.get("message", "")[:60]))
+            time_item = QTableWidgetItem(e.get("time", "")[:19])
+            sev_item = QTableWidgetItem((e.get("severity", "") or "").upper())
+            type_item = QTableWidgetItem(e.get("type", "") or "")
+            loc = e.get("url", "") or ""
+            msg = e.get("message", "") or ""
+            loc_item = QTableWidgetItem(loc)
+            msg_item = QTableWidgetItem(msg)
+            action_item = QTableWidgetItem(e.get("action", "") or "")
+
+            # Store full entry for context menu actions
+            try:
+                loc_item.setData(Qt.UserRole, dict(e))
+            except Exception:
+                pass
+
+            t.setItem(row, 0, time_item)
+            t.setItem(row, 1, sev_item)
+            t.setItem(row, 2, type_item)
+            t.setItem(row, 3, loc_item)
+            t.setItem(row, 4, msg_item)
+            t.setItem(row, 5, action_item)
 
     def _update_dashboard(self):
         lines = [
@@ -1371,6 +1445,117 @@ class CyberDefenseApp(QMainWindow):
         self._update_dashboard()
         self.dashboard_text.clear()
         QMessageBox.information(self, "Threats", "Log cleared.")
+
+    def _threats_context_menu(self, pos):
+        """Right-click context menu for Threats table."""
+        try:
+            idx = self.threat_table.indexAt(pos)
+            if not idx.isValid():
+                return
+            row = idx.row()
+            loc_item = self.threat_table.item(row, 3)
+            if not loc_item:
+                return
+            entry = loc_item.data(Qt.UserRole) or {}
+            location = (entry.get("url") or "").strip()
+            q_path = (entry.get("quarantine_path") or "").strip()
+
+            menu = QMenu(self)
+            act_open_folder = menu.addAction("Open folder")
+            act_quarantine = menu.addAction("Quarantine (copy)")
+            act_restore = menu.addAction("Restore from quarantine")
+            act_ignore = menu.addAction("Ignore (mark)")
+            menu.addSeparator()
+            act_delete_q = menu.addAction("Delete from quarantine")
+
+            # Enable/disable based on data
+            act_open_folder.setEnabled(bool(location))
+            act_quarantine.setEnabled(bool(location))
+            act_restore.setEnabled(bool(q_path))
+            act_delete_q.setEnabled(bool(q_path))
+
+            chosen = menu.exec_(self.threat_table.viewport().mapToGlobal(pos))
+            if not chosen:
+                return
+
+            if chosen == act_open_folder:
+                self._open_location_folder(location)
+            elif chosen == act_quarantine:
+                self._quarantine_location(row, location, entry)
+            elif chosen == act_restore:
+                self._restore_quarantined(row, q_path, entry)
+            elif chosen == act_delete_q:
+                self._delete_quarantined(row, q_path, entry)
+            elif chosen == act_ignore:
+                self._mark_threat_action(row, entry, "Ignored")
+        except Exception:
+            # Never let UI context menu crash the app
+            return
+
+    def _open_location_folder(self, location: str) -> None:
+        try:
+            p = Path(location)
+            folder = p.parent if p.exists() else Path(location).parent
+            if sys.platform == "win32":
+                os.startfile(str(folder))  # type: ignore[attr-defined]
+            else:
+                import subprocess
+                subprocess.run(["xdg-open", str(folder)], timeout=3)
+        except Exception:
+            pass
+
+    def _quarantine_location(self, row: int, location: str, entry: dict) -> None:
+        try:
+            from quarantine import quarantine_file
+            q = quarantine_file(
+                location,
+                threat_type=entry.get("type", "unknown"),
+                threat_message=entry.get("message", ""),
+                copy_instead_of_move=True,
+            )
+            if "error" in q:
+                QMessageBox.warning(self, "Quarantine", f"Failed: {q.get('error')}")
+                self._mark_threat_action(row, entry, "Detected")
+                return
+            entry["quarantine_path"] = q.get("quarantine_path")
+            entry["quarantine_meta"] = q.get("metadata_path")
+            self._mark_threat_action(row, entry, "Quarantined")
+        except Exception as e:
+            QMessageBox.warning(self, "Quarantine", f"Failed: {e}")
+
+    def _restore_quarantined(self, row: int, q_path: str, entry: dict) -> None:
+        try:
+            from quarantine import restore_from_quarantine
+            r = restore_from_quarantine(q_path)
+            if not r.get("success"):
+                QMessageBox.warning(self, "Restore", r.get("message", "Restore failed"))
+                return
+            self._mark_threat_action(row, entry, "Restored")
+        except Exception as e:
+            QMessageBox.warning(self, "Restore", f"Failed: {e}")
+
+    def _delete_quarantined(self, row: int, q_path: str, entry: dict) -> None:
+        try:
+            from quarantine import delete_from_quarantine
+            r = delete_from_quarantine(q_path, secure=False)
+            if not r.get("success"):
+                QMessageBox.warning(self, "Delete", r.get("message", "Delete failed"))
+                return
+            self._mark_threat_action(row, entry, "Deleted")
+        except Exception as e:
+            QMessageBox.warning(self, "Delete", f"Failed: {e}")
+
+    def _mark_threat_action(self, row: int, entry: dict, action: str) -> None:
+        """Update the threat entry and refresh UI."""
+        entry["action"] = action
+        # Update the matching entry in the in-memory log (by time+url+message)
+        key = (entry.get("time"), entry.get("url"), entry.get("message"))
+        for e in self.threat_log:
+            if (e.get("time"), e.get("url"), e.get("message")) == key:
+                e.update(entry)
+                break
+        save_threat_log(self.threat_log)
+        self._refresh_threat_table()
 
     def _scan_url_clicked(self):
         url = (self.url_input.text() or "").strip()
@@ -1418,31 +1603,11 @@ class CyberDefenseApp(QMainWindow):
         except Exception:
             self.lbl_vpn_status.setText("Unknown")
 
-    def _refresh_realtime_tab(self):
-        try:
-            if self.settings.get("enable_realtime_monitor") and getattr(self, "_realtime_monitor", None):
-                paths = [str(p) for p in self._realtime_monitor.watch_paths]
-                self.realtime_paths_text.setPlainText("\n".join(paths))
-            else:
-                self.realtime_paths_text.setPlainText("Real-time monitoring is off. Enable in Settings.")
-            file_threats = [e for e in self.threat_log if e.get("type") in ("malware", "suspicious_file", "eicar_test", "ransomware_honeypot")]
-            self.realtime_events_table.setRowCount(0)
-            for e in list(reversed(file_threats))[:20]:
-                row = self.realtime_events_table.rowCount()
-                self.realtime_events_table.insertRow(row)
-                self.realtime_events_table.setItem(row, 0, QTableWidgetItem(e.get("time", "")[:19]))
-                self.realtime_events_table.setItem(row, 1, QTableWidgetItem((e.get("url", "") or "")[:60]))
-                self.realtime_events_table.setItem(row, 2, QTableWidgetItem(e.get("type", "")))
-                self.realtime_events_table.setItem(row, 3, QTableWidgetItem((e.get("message", "") or "")[:50]))
-        except Exception:
-            pass
-
     def showEvent(self, event):
         super().showEvent(event)
         self._refresh_threat_table()
         self._update_dashboard()
         self._refresh_vpn_status()
-        self._refresh_realtime_tab()
 
 
 def main():
@@ -1465,6 +1630,17 @@ def main():
         /* Fluent-ish dark base */
         QMainWindow, QWidget { background-color: #0b0f14; color: #e5e7eb; }
         QLabel { color: #e5e7eb; background-color: transparent; }
+        QLabel#SectionHeader { font-size: 12pt; font-weight: 700; color: rgba(229,231,235,0.85); padding: 4px 2px; }
+
+        QFrame#StatCard {
+            background-color: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 14px;
+        }
+        QLabel#StatTitle { font-size: 9.5pt; font-weight: 600; color: rgba(148,163,184,0.9); }
+        QLabel#StatValue { font-size: 28pt; font-weight: 800; color: #e5e7eb; }
+        QLabel#ProtectionValue { font-size: 20pt; font-weight: 800; color: #a5b4fc; }
+        QLabel#StatHint { font-size: 8.5pt; color: rgba(148,163,184,0.75); }
 
         /* Buttons */
         QPushButton {
