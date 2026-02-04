@@ -2,7 +2,7 @@
 
 A **user-friendly** desktop app for threat detection and security monitoring on Windows (and Linux from source). Protects you from phishing, trackers, and suspicious downloads with a simple tray icon and clear notifications.
 
-![Version](https://img.shields.io/badge/version-2.1.0-blue)
+![Version](https://img.shields.io/badge/version-2.2.0-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -42,7 +42,7 @@ A **user-friendly** desktop app for threat detection and security monitoring on 
 | 4 | Or go to **Tools → URL Scanner**, paste a link, click **Scan URL**. |
 | 5 | Check **Threats** tab for the log; **Settings** to turn features on/off. |
 
-**Settings:** Sensitivity (Medium recommended), clipboard monitoring, notifications, “Start minimized to tray”, real-time file monitoring (Downloads/Desktop), and auto-update of threat definitions every 2 hours.
+**Settings:** Sensitivity (Medium recommended), clipboard monitoring, notifications, “Start minimized to tray”, real-time file monitoring (Downloads/Desktop/Temp), behavioral monitoring, VPN (WireGuard config + kill-switch), and auto-update of threat definitions every 2 hours.
 
 ---
 
@@ -53,10 +53,12 @@ A **user-friendly** desktop app for threat detection and security monitoring on 
 | 🔗 **URL & phishing detection** | Scans URLs and clipboard links for phishing and suspicious patterns. |
 | 🚨 **Tracker blocking** | Detects known tracking/analytics domains. |
 | 📋 **Clipboard monitoring** | Optional; scans URLs when you copy them. |
-| 📁 **Real-time file monitoring** | Optional; watches Downloads/Desktop and scans new files. |
-| 🔄 **Auto-updates** | Optional; updates blocklists (ClamAV, URLhaus, PhishTank) every 2 hours. |
+| 📁 **Real-time file monitoring** | Optional; watches Downloads, Desktop, **Temp**, and user dirs 24/7. EICAR + hashes + YARA + PE heuristics. |
+| 🛡 **Ransomware shield** | Honeypot files in key dirs; mass-encryption detection. |
+| 🔄 **Auto-updates** | Optional; YARA from GitHub + ClamAV, URLhaus, PhishTank every 2 hours. |
 | 🗂 **Quarantine** | Detected file threats can be moved to quarantine (restore later). |
-| 🌙 **Tray-first** | Runs in the tray; Win10-style notifications; window only when you open it. |
+| 🔒 **VPN integration** | Optional WireGuard connect/disconnect from tray; kill-switch alert when VPN drops. |
+| 🌙 **Tray-first** | Runs in the tray; Win10-style notifications; VPN Connect/Disconnect in menu. |
 | 🎨 **Dark UI** | Simple dashboard, threat log, tools, and settings. |
 
 ---
@@ -69,6 +71,7 @@ A **user-friendly** desktop app for threat detection and security monitoring on 
 | **README-FIRST.txt** | In the release ZIP – how to run and what to do if Windows/AV blocks. |
 | [GETTING_STARTED_DESKTOP.md](GETTING_STARTED_DESKTOP.md) | Full getting started and first-time setup. |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common issues and fixes. |
+| [CORE-DETECTION-OVERHAUL.md](CORE-DETECTION-OVERHAUL.md) | Core detection: real-time FS, signatures, PE heuristics, ransomware shield, VPN. |
 | [PRODUCTION-IMPROVEMENTS.md](PRODUCTION-IMPROVEMENTS.md) | Technical improvements (YARA, ML, real-time, quarantine, etc.). |
 | [SIGNING-SELF-DEFENSE.md](SIGNING-SELF-DEFENSE.md) | Code signing and running as a service. |
 
@@ -97,12 +100,13 @@ The built folder will include **Run Cyber Defense.bat** and **README-FIRST.txt**
 
 Cyber Defense is built to be **actually useful** as an extra layer of protection:
 
-- **Real-time file monitoring** – Watches Downloads and Desktop; scans new files as soon as they appear (no 5‑minute delay).
+- **Real-time file monitoring** – Watches Downloads, Desktop, Temp, and user dirs 24/7; scans new files instantly (EICAR, hashes, YARA, PE heuristics). Ransomware honeypots in key dirs.
 - **URL & clipboard** – Catches phishing and suspicious links before you open them.
-- **Behavioral monitoring** – Flags suspicious process behavior (e.g. encoded PowerShell, download-style commands).
-- **YARA + heuristics** – Optional rule-based and entropy-based detection when you add rules or use the built-in logic.
+- **Behavioral monitoring** – Flags suspicious process behavior and anomalous CPU spikes (e.g. mining/encryption).
+- **YARA + PE heuristics** – Auto-updating YARA rules from GitHub; packed-EXE and entropy-based detection.
 - **Quarantine** – Moves threats to a safe folder instead of deleting; you can restore or remove later.
-- **Auto-updating blocklists** – Pulls ClamAV, URLhaus, and PhishTank so definitions stay current.
+- **Auto-updating blocklists** – Pulls YARA (GitHub), ClamAV, URLhaus, PhishTank so definitions stay current.
+- **VPN** – Optional WireGuard connect/disconnect from tray; kill-switch alerts when VPN drops (local-only; no telemetry).
 
 **Best setup:** Run Cyber Defense **together with** Windows Defender (or your main AV). Defender handles kernel-level and certified AV; Cyber Defense adds real-time file/URL/behavior monitoring and quarantine. See [PRODUCTION-IMPROVEMENTS.md](PRODUCTION-IMPROVEMENTS.md) for what’s under the hood and [SECURITY-ROADMAP.md](SECURITY-ROADMAP.md) for future kernel/driver options.
 

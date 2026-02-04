@@ -1,6 +1,6 @@
 """
 Behavioral monitoring: process creation, file writes, network calls.
-Uses psutil; on Windows optionally pywin32 for ETW/WMI.
+Uses psutil; flags anomalous CPU spikes, suspicious cmdlines, ransomware-like mass file activity.
 """
 
 import os
@@ -27,6 +27,12 @@ try:
     HAS_WIN32 = True
 except ImportError:
     HAS_WIN32 = False
+
+# CPU spike: flag if process CPU % exceeds this (anomalous)
+CPU_SPIKE_PERCENT = 90.0
+# Baseline: sample CPU over this many seconds to establish normal
+CPU_BASELINE_SAMPLES = 5
+CPU_BASELINE_INTERVAL = 1.0
 
 
 @dataclass
@@ -72,7 +78,8 @@ def is_suspicious_process(proc: ProcessEvent) -> Optional[str]:
 
 class BehavioralMonitor:
     """
-    Watch process creation (and optionally file/network). Calls on_suspicious with ThreatResult.
+    Watch process creation and anomalous CPU. Calls on_suspicious with ThreatResult.
+    Flags suspicious cmdlines and sustained CPU spikes (ransomware/mining).
     """
 
     def __init__(
@@ -80,11 +87,14 @@ class BehavioralMonitor:
         on_suspicious: Callable[[ThreatResult], None],
         poll_interval: float = 1.0,
         watch_children: bool = True,
+        cpu_spike_threshold: float = CPU_SPIKE_PERCENT,
     ):
         self.on_suspicious = on_suspicious
         self.poll_interval = poll_interval
         self.watch_children = watch_children
+        self.cpu_spike_threshold = cpu_spike_threshold
         self._seen_pids: Set[int] = set()
+        self._pid_cpu_deque: Dict[int, deque] = {}
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
@@ -108,6 +118,7 @@ class BehavioralMonitor:
         while not self._stop.is_set():
             try:
                 self._check_new_processes()
+                self._check_cpu_spikes()
             except Exception:
                 pass
             self._stop.wait(timeout=self.poll_interval)
@@ -156,6 +167,37 @@ class BehavioralMonitor:
         with self._lock:
             self._seen_pids = current
 
+    def _check_cpu_spikes(self) -> None:
+        """Flag processes with sustained high CPU (e.g. crypto mining, encryption)."""
+        for proc in psutil.process_iter(["pid", "name"]):
+            try:
+                info = proc.info
+                pid = info.get("pid")
+                if pid is None:
+                    continue
+                cpu = proc.cpu_percent(interval=0.05)
+                if cpu < self.cpu_spike_threshold:
+                    continue
+                with self._lock:
+                    if pid not in self._pid_cpu_deque:
+                        self._pid_cpu_deque[pid] = deque(maxlen=5)
+                    self._pid_cpu_deque[pid].append(cpu)
+                    q = self._pid_cpu_deque[pid]
+                if len(q) >= 3 and sum(q) / len(q) >= self.cpu_spike_threshold:
+                    name = info.get("name") or "unknown"
+                    self.on_suspicious(ThreatResult(
+                        is_threat=True,
+                        threat_type="anomalous_behavior",
+                        severity="medium",
+                        confidence=70,
+                        message=f"Anomalous CPU spike: {name} (PID {pid}) ~{cpu:.0f}%",
+                        details={"pid": pid, "name": name, "cpu_percent": cpu},
+                    ))
+                    with self._lock:
+                        self._pid_cpu_deque.pop(pid, None)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+
 
 def get_network_connections_summary() -> List[dict]:
     """Return list of dicts with pid, status, laddr, raddr for active connections."""
@@ -175,3 +217,18 @@ def get_network_connections_summary() -> List[dict]:
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
     return out
+
+
+def check_cpu_spike(pid: int, threshold_percent: float = CPU_SPIKE_PERCENT) -> Optional[float]:
+    """
+    Return current CPU percent for process if above threshold else None.
+    Used to flag anomalous CPU spikes (e.g. crypto mining, ransomware).
+    """
+    try:
+        proc = psutil.Process(pid)
+        cpu = proc.cpu_percent(interval=0.1)
+        if cpu >= threshold_percent:
+            return cpu
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+    return None

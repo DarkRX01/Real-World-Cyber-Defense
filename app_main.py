@@ -4,13 +4,26 @@ Real-World Cyber Defense - Desktop Application
 Main entry point and PyQt5 GUI.
 """
 
-import json
-import logging
 import os
 import sys
+from pathlib import Path
+
+# Ensure the app root is on sys.path so threat_engine, background_service, etc. are always found.
+# Fixes ModuleNotFoundError when running "python app_main.py" from another directory.
+if getattr(sys, "frozen", False):
+    _APP_ROOT = Path(sys.executable).resolve().parent
+else:
+    _APP_ROOT = Path(__file__).resolve().parent
+if str(_APP_ROOT) not in sys.path:
+    sys.path.insert(0, str(_APP_ROOT))
+# When running as script (not frozen), run from app root so relative paths work.
+if not getattr(sys, "frozen", False):
+    os.chdir(_APP_ROOT)
+
+import json
+import logging
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
-from pathlib import Path
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
@@ -36,6 +49,8 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
 )
+
+APP_VERSION = "2.2.0"
 
 from threat_engine import (
     ThreatResult,
@@ -144,6 +159,9 @@ def default_settings() -> dict:
         "enable_realtime_monitor": True,
         "enable_auto_updates": True,
         "enable_behavioral_monitor": True,
+        "enable_vpn": False,
+        "vpn_config_path": "",
+        "vpn_kill_switch": False,
     }
 
 
@@ -191,9 +209,9 @@ class CyberDefenseApp(QMainWindow):
     def __init__(self):
         super().__init__()
         logger.info("Initializing Cyber Defense application")
-        self.setWindowTitle("Cyber Defense - Real-World Security")
-        self.setMinimumSize(900, 650)
-        self.resize(1000, 700)
+        self.setWindowTitle(f"Cyber Defense v{APP_VERSION} — Real-World Security")
+        self.setMinimumSize(920, 680)
+        self.resize(1020, 720)
         
         # Force window to show on top and centered
         self.setWindowState(self.windowState() & ~Qt.WindowMinimized | Qt.WindowActive)
@@ -207,6 +225,7 @@ class CyberDefenseApp(QMainWindow):
         self._update_scheduler = None
         self._realtime_monitor = None
         self._behavioral_monitor = None
+        self._vpn_client = None
 
         self._service = BackgroundService(
             on_threat=self._on_threat_detected,
@@ -313,13 +332,21 @@ class CyberDefenseApp(QMainWindow):
         """)
         title_layout.addWidget(header)
         
-        subheader = QLabel("Real-time protection · Phishing · Trackers · File monitoring")
+        subheader = QLabel("Real-time protection · Phishing · Trackers · File monitoring · VPN")
         subheader.setStyleSheet("""
             font-size: 12px;
             color: rgba(255, 255, 255, 0.9);
             background: transparent;
         """)
         title_layout.addWidget(subheader)
+        
+        version_lbl = QLabel(f"v{APP_VERSION}")
+        version_lbl.setStyleSheet("""
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            background: transparent;
+        """)
+        title_layout.addWidget(version_lbl)
         
         top_layout.addWidget(title_container)
         top_layout.addStretch()
@@ -396,10 +423,28 @@ class CyberDefenseApp(QMainWindow):
         phishing_card.layout().addWidget(self.lbl_phishing)
         stats_layout.addWidget(phishing_card)
         
+        # Protection status card - green when active
+        protection_card = self._create_stat_card(
+            icon="🔒",
+            title="Protection",
+            gradient="qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #059669, stop:1 #047857)",
+            glow="rgba(16, 185, 129, 0.3)"
+        )
+        self.lbl_protection = QLabel("ON")
+        self.lbl_protection.setStyleSheet("""
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffffff;
+            background: transparent;
+        """)
+        protection_card.layout().addWidget(self.lbl_protection)
+        stats_layout.addWidget(protection_card)
+        
         layout.addWidget(stats_container)
 
         # Tabs
         self.tabs = QTabWidget()
+        self.tabs.setDocumentMode(True)
         self.tabs.addTab(self._dashboard_tab(), "📊 Dashboard")
         self.tabs.addTab(self._threats_tab(), "🔴 Threats")
         self.tabs.addTab(self._tools_tab(), "🔧 Tools")
@@ -426,26 +471,53 @@ class CyberDefenseApp(QMainWindow):
     def _dashboard_tab(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.addWidget(QLabel("Overview"))
+        layout.setSpacing(16)
+        overview_header = QLabel("📋 Overview")
+        overview_header.setStyleSheet("font-size: 14px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;")
+        layout.addWidget(overview_header)
         self.dashboard_text = QPlainTextEdit()
         self.dashboard_text.setReadOnly(True)
+        self.dashboard_text.setMinimumHeight(180)
         self.dashboard_text.setPlaceholderText(
             "Copy a URL and paste it somewhere — we'll scan it automatically.\n\n"
             "Or go to Tools → Scan URL to check a link manually.\n\n"
             "Threats and activity will appear here and in the Threats tab."
         )
         self.dashboard_text.setToolTip("Recent activity and threat summary. Copy URLs to trigger automatic scanning.")
+        self.dashboard_text.setStyleSheet("""
+            QPlainTextEdit {
+                background-color: #1e293b;
+                color: #e2e8f0;
+                border: 1px solid #334155;
+                border-radius: 10px;
+                padding: 14px;
+                font-size: 11pt;
+            }
+        """)
         layout.addWidget(self.dashboard_text)
+        quick_hl = QLabel("Quick actions")
+        quick_hl.setStyleSheet("font-size: 13px; font-weight: 600; color: #94a3b8; margin-top: 8px;")
+        layout.addWidget(quick_hl)
+        quick_btn = QPushButton("Open Tools → Scan URL")
+        quick_btn.setMaximumWidth(220)
+        quick_btn.setToolTip("Jump to URL scanner")
+        quick_btn.clicked.connect(lambda: self.tabs.setCurrentIndex(2))
+        layout.addWidget(quick_btn)
+        layout.addStretch()
         return w
 
     def _threats_tab(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
         layout.setSpacing(12)
+        threats_header = QLabel("🔴 Threat history")
+        threats_header.setStyleSheet("font-size: 14px; font-weight: 600; color: #94a3b8; margin-bottom: 4px;")
+        layout.addWidget(threats_header)
         self.threat_table = QTableWidget(0, 5)
         self.threat_table.setHorizontalHeaderLabels(["Time", "Type", "Severity", "URL / Details", "Message"])
         self.threat_table.horizontalHeader().setStretchLastSection(True)
         self.threat_table.setAlternatingRowColors(True)
+        self.threat_table.setMinimumHeight(280)
         layout.addWidget(self.threat_table)
         clear_btn = QPushButton("Clear log")
         clear_btn.setMaximumWidth(120)
@@ -516,6 +588,13 @@ class CyberDefenseApp(QMainWindow):
         self.cb_auto_updates.setToolTip("Keep blocklists (ClamAV, URLhaus, PhishTank) up to date.")
         self.cb_behavioral_monitor = QCheckBox("Behavioral monitoring (suspicious process detection)")
         self.cb_behavioral_monitor.setToolTip("Watch for suspicious process patterns (e.g. encoded PowerShell). Optional; requires no extra deps.")
+        self.cb_vpn = QCheckBox("VPN integration (WireGuard)")
+        self.cb_vpn.setToolTip("Use WireGuard config for connect/disconnect from tray. Install WireGuard separately.")
+        self.cb_vpn_kill_switch = QCheckBox("VPN kill-switch (alert when VPN drops)")
+        self.cb_vpn_kill_switch.setToolTip("Show critical alert if VPN disconnects while enabled. No data sent; local-only.")
+        self.vpn_config_edit = QLineEdit()
+        self.vpn_config_edit.setPlaceholderText("Path to WireGuard .conf (e.g. C:\\Users\\You\\wg0.conf)")
+        self.vpn_config_edit.setToolTip("Full path to your WireGuard configuration file.")
 
         self.sensitivity_combo = QComboBox()
         self.sensitivity_combo.addItems(["Low", "Medium", "High", "Extreme"])
@@ -525,8 +604,11 @@ class CyberDefenseApp(QMainWindow):
             self.cb_clipboard, self.cb_tracker, self.cb_phishing, self.cb_download,
             self.cb_url_scan, self.cb_notifications, self.cb_start_minimized,
             self.cb_realtime_monitor, self.cb_auto_updates, self.cb_behavioral_monitor,
+            self.cb_vpn, self.cb_vpn_kill_switch,
         ):
             layout.addWidget(c)
+        layout.addWidget(QLabel("VPN config path (WireGuard):"))
+        layout.addWidget(self.vpn_config_edit)
         layout.addWidget(QLabel("Sensitivity:"))
         layout.addWidget(self.sensitivity_combo)
 
@@ -551,6 +633,11 @@ class CyberDefenseApp(QMainWindow):
         menu.addSeparator()
         pause_a = menu.addAction("Pause")
         pause_a.triggered.connect(self._toggle_pause)
+        self.vpn_connect_a = menu.addAction("VPN: Connect")
+        self.vpn_connect_a.triggered.connect(self._vpn_connect)
+        self.vpn_disconnect_a = menu.addAction("VPN: Disconnect")
+        self.vpn_disconnect_a.triggered.connect(self._vpn_disconnect)
+        menu.addSeparator()
         settings_a = menu.addAction("Settings")
         settings_a.triggered.connect(self._open_settings)
         menu.addSeparator()
@@ -586,6 +673,11 @@ class CyberDefenseApp(QMainWindow):
                 self._behavioral_monitor.stop()
             except Exception:
                 pass
+        if getattr(self, "_vpn_client", None):
+            try:
+                self._vpn_client.stop()
+            except Exception:
+                pass
         save_settings(self.settings)
         save_threat_log(self.threat_log)
         QApplication.quit()
@@ -615,6 +707,9 @@ class CyberDefenseApp(QMainWindow):
         self.cb_realtime_monitor.setChecked(bool(s.get("enable_realtime_monitor", False)))
         self.cb_auto_updates.setChecked(bool(s.get("enable_auto_updates", True)))
         self.cb_behavioral_monitor.setChecked(bool(s.get("enable_behavioral_monitor", False)))
+        self.cb_vpn.setChecked(bool(s.get("enable_vpn", False)))
+        self.cb_vpn_kill_switch.setChecked(bool(s.get("vpn_kill_switch", False)))
+        self.vpn_config_edit.setText(s.get("vpn_config_path", "") or "")
         sens = s.get("sensitivity", "MEDIUM").capitalize()
         idx = self.sensitivity_combo.findText(sens)
         if idx >= 0:
@@ -631,6 +726,9 @@ class CyberDefenseApp(QMainWindow):
         self.settings["enable_realtime_monitor"] = self.cb_realtime_monitor.isChecked()
         self.settings["enable_auto_updates"] = self.cb_auto_updates.isChecked()
         self.settings["enable_behavioral_monitor"] = self.cb_behavioral_monitor.isChecked()
+        self.settings["enable_vpn"] = self.cb_vpn.isChecked()
+        self.settings["vpn_kill_switch"] = self.cb_vpn_kill_switch.isChecked()
+        self.settings["vpn_config_path"] = self.vpn_config_edit.text().strip()
         self.settings["sensitivity"] = self.sensitivity_combo.currentText().upper()
         save_settings(self.settings)
         self._service.update_settings(
@@ -638,6 +736,28 @@ class CyberDefenseApp(QMainWindow):
             enable_clipboard=self.settings["enable_clipboard"],
             enable_tracker_check=self.settings["enable_tracker_check"],
         )
+        if self.settings.get("enable_vpn", False) and self.settings.get("vpn_config_path", "").strip():
+            try:
+                from vpn_client import VPNClient
+                if getattr(self, "_vpn_client", None):
+                    self._vpn_client.stop()
+                config_path = self.settings["vpn_config_path"].strip()
+                kill_switch = bool(self.settings.get("vpn_kill_switch", False))
+                self._vpn_client = VPNClient(
+                    config_path=config_path,
+                    kill_switch=kill_switch,
+                    on_vpn_down=self._on_vpn_down,
+                )
+            except Exception as e:
+                logger.debug("VPN client not started: %s", e)
+                self._vpn_client = None
+        else:
+            if getattr(self, "_vpn_client", None):
+                try:
+                    self._vpn_client.stop()
+                except Exception:
+                    pass
+                self._vpn_client = None
         QMessageBox.information(self, "Settings", "Settings saved.")
 
     def _start_monitoring(self):
@@ -661,14 +781,10 @@ class CyberDefenseApp(QMainWindow):
 
         if self.settings.get("enable_realtime_monitor", False):
             try:
-                import os
-                from realtime_monitor import RealtimeFileMonitor
-                watch_paths = [
-                    os.path.expanduser("~/Downloads"),
-                    os.path.expanduser("~/Desktop"),
-                ]
-                if os.environ.get("USERPROFILE"):
-                    watch_paths.append(os.path.join(os.environ["USERPROFILE"], "Downloads"))
+                from realtime_monitor import RealtimeFileMonitor, get_default_watch_paths
+                from ransomware_shield import ensure_honeypot_files
+                ensure_honeypot_files()
+                watch_paths = get_default_watch_paths()
                 self._realtime_monitor = RealtimeFileMonitor(
                     watch_paths=watch_paths,
                     on_threat=self._on_file_threat,
@@ -692,6 +808,54 @@ class CyberDefenseApp(QMainWindow):
                 self._behavioral_monitor = None
         else:
             self._behavioral_monitor = None
+
+        if self.settings.get("enable_vpn", False) and self.settings.get("vpn_config_path", "").strip():
+            try:
+                from vpn_client import VPNClient
+                config_path = self.settings["vpn_config_path"].strip()
+                kill_switch = bool(self.settings.get("vpn_kill_switch", False))
+                self._vpn_client = VPNClient(
+                    config_path=config_path,
+                    kill_switch=kill_switch,
+                    on_vpn_down=self._on_vpn_down,
+                )
+            except Exception as e:
+                logger.debug("VPN client not started: %s", e)
+                self._vpn_client = None
+        else:
+            self._vpn_client = None
+
+    def _on_vpn_down(self):
+        """Kill-switch: VPN dropped while expected on. Alert user (no telemetry)."""
+        if self._paused:
+            return
+        if self.tray.isVisible():
+            self.tray.showMessage(
+                "Cyber Defense – VPN",
+                "VPN connection dropped. Traffic may be exposed. Reconnect or disable VPN in Settings.",
+                QSystemTrayIcon.Critical,
+                10000,
+            )
+
+    def _vpn_connect(self):
+        if not getattr(self, "_vpn_client", None):
+            self.tray.showMessage("Cyber Defense", "Enable VPN in Settings and set config path first.", QSystemTrayIcon.Warning, 5000)
+            return
+        ok, msg = self._vpn_client.connect()
+        if ok:
+            self.tray.showMessage("Cyber Defense – VPN", msg or "Connecting...", QSystemTrayIcon.Information, 5000)
+        else:
+            self.tray.showMessage("Cyber Defense – VPN", f"Connect failed: {msg}", QSystemTrayIcon.Warning, 8000)
+
+    def _vpn_disconnect(self):
+        if not getattr(self, "_vpn_client", None):
+            self.tray.showMessage("Cyber Defense", "VPN not configured.", QSystemTrayIcon.Information, 3000)
+            return
+        ok, msg = self._vpn_client.disconnect()
+        if ok:
+            self.tray.showMessage("Cyber Defense – VPN", msg or "Disconnected.", QSystemTrayIcon.Information, 5000)
+        else:
+            self.tray.showMessage("Cyber Defense – VPN", f"Disconnect: {msg}", QSystemTrayIcon.Warning, 5000)
 
     def _on_file_threat(self, result: ThreatResult, path: str):
         """Called when real-time monitor detects a file threat; notify and optionally quarantine."""
@@ -793,6 +957,8 @@ class CyberDefenseApp(QMainWindow):
                 padding: 12px 20px;
             """)
             self.btn_pause.setText("⏸ Pause")
+        if hasattr(self, "lbl_protection"):
+            self.lbl_protection.setText("PAUSED" if self._paused else "ON")
 
     def _on_threat_detected(self, result: ThreatResult, url: str):
         if self._paused:
@@ -828,6 +994,8 @@ class CyberDefenseApp(QMainWindow):
         self.lbl_threats.setText(str(self._stats['threats']))
         self.lbl_trackers.setText(str(self._stats['trackers']))
         self.lbl_phishing.setText(str(self._stats['phishing']))
+        if hasattr(self, "lbl_protection"):
+            self.lbl_protection.setText("PAUSED" if self._paused else "ON")
 
     def _refresh_threat_table(self):
         t = self.threat_table
@@ -901,7 +1069,7 @@ class CyberDefenseApp(QMainWindow):
 
 
 def main():
-    logger.info("Starting Cyber Defense v2.1.0")
+    logger.info("Starting Cyber Defense v%s", APP_VERSION)
     logger.info(f"Platform: {sys.platform}")
     logger.info(f"Python: {sys.version}")
     

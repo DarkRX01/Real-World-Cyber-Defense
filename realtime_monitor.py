@@ -1,7 +1,8 @@
 """
 Event-driven real-time file monitoring.
 Windows: ReadDirectoryChangesW (or watchdog); Linux: inotify via watchdog.
-No polling — react on file create/modify immediately.
+Watches Downloads, Temp, and user dirs 24/7. Scans new/modified files instantly
+with hashlib hashes and content checks (EICAR, YARA, entropy).
 """
 
 import os
@@ -19,9 +20,43 @@ from threat_engine import ThreatResult
 # Prefer watchdog for cross-platform; Windows can use ReadDirectoryChangesW for lower latency
 USE_WATCHDOG = True
 
+# EICAR test file is small; scan any file under this size for EICAR content regardless of extension
+EICAR_MAX_SCAN_BYTES = 2048
+
+
+def get_default_watch_paths() -> List[str]:
+    """
+    Default paths to watch 24/7: Downloads, Temp, Desktop, user home.
+    Ensures real-time detection in high-risk dirs (Defender-style).
+    """
+    paths = []
+    home = Path.home()
+    if sys.platform == "win32":
+        profile = os.environ.get("USERPROFILE", str(home))
+        profile_path = Path(profile)
+        for name in ("Downloads", "Desktop", "Documents"):
+            p = profile_path / name
+            if p.exists():
+                paths.append(str(p))
+        temp = os.environ.get("TEMP") or os.environ.get("TMP") or str(profile_path / "AppData" / "Local" / "Temp")
+        if temp and Path(temp).exists():
+            paths.append(temp)
+        # User dir root for any new folders
+        if profile_path.exists():
+            paths.append(str(profile_path))
+    else:
+        for name in ("Downloads", "Desktop", "Documents"):
+            p = home / name
+            if p.exists():
+                paths.append(str(p))
+        if Path("/tmp").exists():
+            paths.append("/tmp")
+        paths.append(str(home))
+    return list(dict.fromkeys(paths))  # dedupe
+
 
 def _scan_callback_default(path: str) -> Optional[ThreatResult]:
-    """Default: use threat_engine comprehensive scan."""
+    """Default: use threat_engine comprehensive scan (EICAR + hash + YARA + entropy)."""
     from threat_engine import scan_file_comprehensive, Sensitivity
     return scan_file_comprehensive(path, Sensitivity.MEDIUM)
 
@@ -34,16 +69,20 @@ class RealtimeFileMonitor:
 
     def __init__(
         self,
-        watch_paths: List[str],
-        on_threat: Callable[[ThreatResult, str], None],
+        watch_paths: Optional[List[str]] = None,
+        on_threat: Optional[Callable[[ThreatResult, str], None]] = None,
         scan_callback: Optional[Callable[[str], Optional[ThreatResult]]] = None,
         extensions_to_watch: Optional[List[str]] = None,
     ):
-        self.watch_paths = [Path(p).resolve() for p in watch_paths]
-        self.on_threat = on_threat
+        resolved = (watch_paths or get_default_watch_paths())
+        self.watch_paths = [Path(p).resolve() for p in resolved if Path(p).exists()]
+        if not self.watch_paths:
+            self.watch_paths = [Path.home()]
+        self.on_threat = on_threat or (lambda r, p: None)
         self.scan_callback = scan_callback or _scan_callback_default
         self.extensions_to_watch = (extensions_to_watch or [
-            ".exe", ".dll", ".scr", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".msi", ".com"
+            ".exe", ".dll", ".scr", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".msi", ".com",
+            ".txt", ".pif", ".hta", ".reg", ".jse", ".wsf", ".vbe",
         ])
         self._observer = None
         self._stop = threading.Event()
@@ -55,9 +94,25 @@ class RealtimeFileMonitor:
         if not p.is_file():
             return False
         suf = p.suffix.lower()
-        return suf in self.extensions_to_watch
+        if suf in self.extensions_to_watch:
+            return True
+        # EICAR: scan small files regardless of extension (eicar.com, eicar, etc.)
+        try:
+            if p.stat().st_size <= EICAR_MAX_SCAN_BYTES:
+                return True
+        except OSError:
+            pass
+        return False
 
     def _handle_event(self, path: str) -> None:
+        # Ransomware honeypot: if a honeypot file is touched, alert immediately
+        try:
+            from ransomware_shield import is_honeypot_path, honeypot_threat_result
+            if is_honeypot_path(path):
+                self.on_threat(honeypot_threat_result(path), path)
+                return
+        except Exception:
+            pass
         if not self._should_scan(path):
             return
         try:

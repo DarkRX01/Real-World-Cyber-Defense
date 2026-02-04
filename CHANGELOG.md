@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No additional changes yet._
 
+## [2.2.0] - 2026-02-04
+
+### Added
+- **GUI:** Version (v2.2.0) in window title and header; 4th stat card “Protection” (ON/PAUSED); Dashboard “Quick actions” with “Open Tools → Scan URL”; Threat tab “Threat history” header; cleaner Dashboard/Threats styling.
+- **Core Detection Overhaul:** Real-time FS (Downloads, Desktop, Temp, user dirs), EICAR + hashlib hashes, YARA from GitHub, PE heuristics, ransomware honeypots, behavioral CPU spike detection, anomaly detector (see CORE-DETECTION-OVERHAUL.md).
+- **VPN:** WireGuard connect/disconnect from tray; kill-switch alert when VPN drops; Settings: VPN config path and kill-switch.
+
+### Changed
+- Window size default 1020×720; minimum 920×680.
+- Build and version_info: 2.2.0; ProductVersion/FileVersion 2.2.0.0.
+- Release ZIP: `releases/CyberDefense-Windows-Portable.zip` (contains full CyberDefense folder for GitHub Releases).
+
 ## [2.1.0] - 2026-02-04
 
 ### Added

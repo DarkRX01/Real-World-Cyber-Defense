@@ -92,11 +92,17 @@ def fetch_clamav_sigs(on_progress: Optional[Callable[[str], None]] = None) -> bo
 
 
 def run_all_updates(on_progress: Optional[Callable[[str], None]] = None) -> dict:
-    """Run all update fetches. Returns dict with success flags."""
+    """Run all update fetches: URLhaus, PhishTank, ClamAV, and YARA rules from GitHub."""
     result = {}
     result["urlhaus"] = fetch_urlhaus(on_progress)
     result["phishtank"] = fetch_phishtank_public(on_progress)
     result["clamav"] = fetch_clamav_sigs(on_progress)
+    try:
+        from signature_updater import run_signature_updates
+        sig_result = run_signature_updates(on_progress)
+        result["yara_github"] = sig_result.get("yara_github", False)
+    except Exception:
+        result["yara_github"] = False
     return result
 
 
