@@ -900,7 +900,11 @@ class CyberDefenseApp(QMainWindow):
     def _on_status_tick(self):
         self._update_tray_icon()
         if hasattr(self, "_notif_mgr"):
-            self._notif_mgr.flush_pending()
+            # Flush a few queued notifications to avoid event-loop overload
+            try:
+                self._notif_mgr.flush_queue(max_to_show=3)
+            except Exception:
+                pass
         try:
             if hasattr(self, "lbl_vpn_status") and self.lbl_vpn_status:
                 self._refresh_vpn_status()
@@ -1172,11 +1176,32 @@ class CyberDefenseApp(QMainWindow):
         """Called when real-time monitor detects a file threat; notify and optionally quarantine."""
         if self._paused:
             return
+        # Avoid "self-detection": never quarantine or spam-alert our own app files/folder.
+        # This commonly happens when the app is run from Downloads/Temp and entropy heuristics flag packed DLLs.
+        try:
+            p = Path(path).resolve()
+            app_root = Path(_APP_ROOT).resolve()
+            if str(p).lower().startswith(str(app_root).lower()):
+                logger.info("Self-file excluded from actions: %s", p)
+                return
+            # Also exclude PyInstaller internal bundle folders if user runs from extracted ZIP
+            if any(part.lower() in ("cyberdefense", "_internal") for part in p.parts[-3:]) and p.name.lower().endswith((".dll", ".exe")):
+                # If the file is inside a CyberDefense bundle folder, treat it as self
+                # (prevents quarantining python dlls like pywintypes*.dll)
+                bundle_hint = [x.lower() for x in p.parts]
+                if "cyberdefense" in bundle_hint and "_internal" in bundle_hint:
+                    logger.info("Self-bundle excluded from actions: %s", p)
+                    return
+        except Exception:
+            pass
+        # Limit in-memory log to 1000 (overload protection)
+        if len(self.threat_log) > 1000:
+            self.threat_log = self.threat_log[-900:]
         entry = {
             "time": datetime.now().isoformat(),
             "type": result.threat_type,
             "severity": result.severity,
-            "url": path,
+            "url": path,  # location for UI
             "message": result.message,
             "confidence": result.confidence,
         }
@@ -1187,7 +1212,13 @@ class CyberDefenseApp(QMainWindow):
         self._refresh_threat_table()
         self._update_dashboard()
         if hasattr(self, "_notif_mgr"):
-            self._notif_mgr.notify("Cyber Defense", f"File threat: {result.message[:60]}", "file", "warning")
+            loc = path or result.details.get("filepath") or ""
+            self._notif_mgr.notify(
+                "Cyber Defense",
+                f"File threat: {result.message[:60]} | {loc}",
+                "file",
+                "warning",
+            )
         # Optional: offer quarantine (quarantine module)
         if result.details.get("filepath") or path:
             try:
@@ -1203,6 +1234,8 @@ class CyberDefenseApp(QMainWindow):
         if self._paused:
             return
         detail = result.details.get("name") or result.details.get("reason") or "suspicious process"
+        if len(self.threat_log) > 1000:
+            self.threat_log = self.threat_log[-900:]
         entry = {
             "time": datetime.now().isoformat(),
             "type": result.threat_type,
@@ -1218,7 +1251,12 @@ class CyberDefenseApp(QMainWindow):
         self._refresh_threat_table()
         self._update_dashboard()
         if hasattr(self, "_notif_mgr"):
-            self._notif_mgr.notify("Cyber Defense", f"Behavior: {result.message[:60]}", "behavioral", "warning")
+            self._notif_mgr.notify(
+                "Cyber Defense",
+                f"Behavior: {result.message[:60]} | Process: {detail}",
+                "behavioral",
+                "warning",
+            )
 
     def _toggle_pause(self):
         self._paused = not self._paused
@@ -1266,11 +1304,13 @@ class CyberDefenseApp(QMainWindow):
         if self._paused:
             return
         logger.info(f"Threat detected: {result.threat_type} - {url[:50]}... (confidence: {result.confidence}%)")
+        if len(self.threat_log) > 1000:
+            self.threat_log = self.threat_log[-900:]
         entry = {
             "time": datetime.now().isoformat(),
             "type": result.threat_type,
             "severity": result.severity,
-            "url": url,
+            "url": url,  # location for UI
             "message": result.message,
             "confidence": result.confidence,
         }
@@ -1286,7 +1326,12 @@ class CyberDefenseApp(QMainWindow):
         self._update_dashboard()
         if hasattr(self, "_notif_mgr"):
             cat = "network" if result.threat_type in ("phishing", "tracker") else "other"
-            self._notif_mgr.notify("Cyber Defense", f"{result.threat_type.upper()}: {result.message[:80]}", cat, "warning")
+            self._notif_mgr.notify(
+                "Cyber Defense",
+                f"{result.threat_type.upper()}: {result.message[:80]} | {url}",
+                cat,
+                "warning",
+            )
 
     def _refresh_stats(self):
         self.lbl_threats.setText(str(self._stats['threats']))
@@ -1415,49 +1460,53 @@ def main():
         logger.warning(f"Could not set Fusion style: {e}")
         # Continue anyway with default style
     app.setStyleSheet("""
-        * { font-family: 'Segoe UI', Arial, sans-serif; }
-        QMainWindow, QWidget { background-color: #0f1117; color: #e2e8f0; }
-        QLabel { color: #e2e8f0; background-color: transparent; }
+        * { font-family: 'Segoe UI Variable', 'Segoe UI', Arial, sans-serif; }
+
+        /* Fluent-ish dark base */
+        QMainWindow, QWidget { background-color: #0b0f14; color: #e5e7eb; }
+        QLabel { color: #e5e7eb; background-color: transparent; }
+
+        /* Buttons */
         QPushButton {
-            background-color: #1e293b;
-            color: #f1f5f9;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 10px 18px;
+            background-color: #111827;
+            color: #f9fafb;
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 10px;
+            padding: 10px 16px;
             font-weight: 600;
-            font-size: 10pt;
+            font-size: 10.5pt;
         }
-        QPushButton:hover {
-            background-color: #334155;
-            border-color: #475569;
-        }
-        QPushButton:pressed { background-color: #475569; }
+        QPushButton:hover { border-color: rgba(99, 102, 241, 0.65); background-color: #0f172a; }
+        QPushButton:pressed { background-color: #0b1220; }
+        QPushButton:disabled { color: rgba(229, 231, 235, 0.35); }
+
+        /* Inputs */
         QLineEdit, QPlainTextEdit, QTextEdit {
-            background-color: #1e293b;
-            color: #e2e8f0;
-            border: 1px solid #334155;
-            border-radius: 8px;
+            background-color: #0f172a;
+            color: #e5e7eb;
+            border: 1px solid rgba(148, 163, 184, 0.20);
+            border-radius: 10px;
             padding: 10px;
-            selection-background-color: #475569;
+            selection-background-color: rgba(99, 102, 241, 0.35);
         }
-        QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus {
-            border-color: #6366f1;
-        }
+        QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus { border-color: #6366f1; }
+
+        /* Combo */
         QComboBox {
-            background-color: #1e293b;
-            color: #e2e8f0;
-            border: 1px solid #334155;
-            border-radius: 8px;
+            background-color: #0f172a;
+            color: #e5e7eb;
+            border: 1px solid rgba(148, 163, 184, 0.20);
+            border-radius: 10px;
             padding: 8px;
             min-height: 28px;
         }
-        QComboBox:hover { border-color: #6366f1; }
+        QComboBox:hover { border-color: rgba(99, 102, 241, 0.65); }
         QComboBox::drop-down {
             border: none;
-            background-color: #334155;
+            background-color: rgba(148, 163, 184, 0.10);
             width: 28px;
-            border-top-right-radius: 6px;
-            border-bottom-right-radius: 6px;
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
         }
         QComboBox::down-arrow {
             image: none;
@@ -1467,17 +1516,17 @@ def main():
             margin-right: 8px;
         }
         QComboBox QAbstractItemView {
-            background-color: #1e293b;
-            color: #e2e8f0;
-            border: 1px solid #334155;
-            selection-background-color: #475569;
+            background-color: #0f172a;
+            color: #e5e7eb;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            selection-background-color: rgba(99, 102, 241, 0.35);
         }
-        QCheckBox { color: #e2e8f0; spacing: 10px; background-color: transparent; }
+        QCheckBox { color: #e5e7eb; spacing: 10px; background-color: transparent; }
         QCheckBox::indicator {
             width: 18px; height: 18px;
-            border: 1px solid #334155;
-            border-radius: 4px;
-            background-color: #1e293b;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            border-radius: 5px;
+            background-color: #0f172a;
         }
         QCheckBox::indicator:hover { border-color: #6366f1; }
         QCheckBox::indicator:checked {
@@ -1486,36 +1535,36 @@ def main():
             image: url(none);
         }
         QTabWidget::pane {
-            border: 1px solid #334155;
-            border-radius: 10px;
-            background-color: #1e293b;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 12px;
+            background-color: #0f172a;
             top: -1px;
         }
         QTabBar::tab {
-            background-color: #0f1117;
-            color: #94a3b8;
-            border: 1px solid #334155;
+            background-color: #0b0f14;
+            color: rgba(229, 231, 235, 0.65);
+            border: 1px solid rgba(148, 163, 184, 0.18);
             border-bottom: none;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
             padding: 10px 18px;
             margin-right: 2px;
             font-weight: 600;
             min-width: 90px;
         }
         QTabBar::tab:selected {
-            background-color: #1e293b;
-            color: #818cf8;
-            border-bottom: 1px solid #1e293b;
+            background-color: #0f172a;
+            color: #a5b4fc;
+            border-bottom: 1px solid #0f172a;
         }
-        QTabBar::tab:hover:!selected { background-color: #334155; color: #e2e8f0; }
+        QTabBar::tab:hover:!selected { background-color: #0f172a; color: #e5e7eb; }
         QTableWidget {
-            background-color: #1e293b;
-            color: #e2e8f0;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            gridline-color: #334155;
-            alternate-background-color: #0f1117;
+            background-color: #0f172a;
+            color: #e5e7eb;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 12px;
+            gridline-color: rgba(148, 163, 184, 0.12);
+            alternate-background-color: #0b0f14;
         }
         QTableWidget::item {
             padding: 8px;
@@ -1527,17 +1576,17 @@ def main():
         }
         QTableWidget::item:hover { background-color: #334155; }
         QHeaderView::section {
-            background-color: #0f1117;
-            color: #94a3b8;
+            background-color: #0b0f14;
+            color: rgba(229, 231, 235, 0.65);
             border: none;
             padding: 10px 12px;
             font-weight: 600;
-            border-bottom: 1px solid #334155;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
         }
-        QHeaderView::section:hover { background-color: #334155; }
+        QHeaderView::section:hover { background-color: rgba(148, 163, 184, 0.08); }
         QGroupBox {
-            border: 1px solid #334155;
-            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 12px;
             margin-top: 14px;
             padding: 16px 14px 14px 14px;
             font-weight: 600;
@@ -1548,7 +1597,20 @@ def main():
             subcontrol-origin: margin;
             left: 14px;
             padding: 0 8px;
-            background-color: #0f1117;
+            background-color: #0b0f14;
+        }
+        QProgressBar {
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 10px;
+            text-align: center;
+            background: #0f172a;
+            color: rgba(229, 231, 235, 0.75);
+            height: 18px;
+        }
+        QProgressBar::chunk {
+            border-radius: 10px;
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop:0 #6366f1, stop:1 #a5b4fc);
         }
         QScrollBar:vertical {
             background-color: #1e293b;
@@ -1576,8 +1638,8 @@ def main():
         QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
             width: 0px;
         }
-        QMessageBox { background-color: #0f1117; }
-        QMessageBox QLabel { color: #e2e8f0; }
+        QMessageBox { background-color: #0b0f14; }
+        QMessageBox QLabel { color: #e5e7eb; }
         QMessageBox QPushButton { min-width: 80px; }
     """)
     

@@ -10,15 +10,16 @@ from pathlib import Path
 import shutil
 
 def create_release_package():
+    # NOTE: Keep console output ASCII-only (Windows cp1252-safe).
     print("=" * 70)
-    print("📦 Cyber Defense - Release Packager")
+    print("Cyber Defense - Release Packager")
     print("=" * 70)
     print()
     
     # Check if dist folder exists
     dist_dir = Path("dist/CyberDefense")
     if not dist_dir.exists():
-        print("❌ dist/CyberDefense not found!")
+        print("ERROR: dist/CyberDefense not found!")
         print("   Please run 'python build-final.py' first")
         return
     
@@ -27,14 +28,16 @@ def create_release_package():
     releases_dir.mkdir(exist_ok=True)
     
     # Create ZIP filename
-    zip_name = "CyberDefense-Windows-Portable.zip"
-    zip_path = releases_dir / zip_name
+    zip_name_portable = "CyberDefense-Windows-Portable.zip"
+    zip_name_simple = "CyberDefense-Windows.zip"
+    zip_path = releases_dir / zip_name_portable
+    zip_path_simple = releases_dir / zip_name_simple
     
     # Remove old zip if exists
     if zip_path.exists():
         zip_path.unlink()
     
-    print(f"📦 Creating {zip_name}...")
+    print(f"Creating {zip_name_portable} ...")
     print()
     
     # Create ZIP file
@@ -44,7 +47,8 @@ def create_release_package():
             if file_path.is_file():
                 arcname = f"CyberDefense/{file_path.relative_to(dist_dir)}"
                 zipf.write(file_path, arcname)
-                print(f"  ✓ Added: {arcname}")
+                # Avoid noisy output (and unicode) for large zips
+                pass
         
         # Add README
         readme_content = """Cyber Defense - Windows Portable Edition
@@ -106,19 +110,28 @@ https://github.com/DarkRX01/Real-World-Cyber-Defense
         readme_path.write_text(readme_content, encoding="utf-8")
         zipf.write(readme_path, "README.txt")
         readme_path.unlink()  # Delete temp file
-        print(f"  ✓ Added: README.txt")
+        print("Added: README.txt")
     
     print()
     print("=" * 70)
-    print("✅ PACKAGE CREATED SUCCESSFULLY!")
+    print("PACKAGE CREATED SUCCESSFULLY!")
     print()
-    print(f"📁 Location: {zip_path.absolute()}")
-    print(f"📊 Size: {zip_path.stat().st_size / 1024 / 1024:.2f} MB")
+    print(f"Location: {zip_path.absolute()}")
+    print(f"Size: {zip_path.stat().st_size / 1024 / 1024:.2f} MB")
     print()
-    print("📤 READY FOR DISTRIBUTION!")
+    print("READY FOR DISTRIBUTION!")
+    print()
+    # Also provide a simpler alternate name for convenience
+    try:
+        if zip_path_simple.exists():
+            zip_path_simple.unlink()
+        shutil.copy2(zip_path, zip_path_simple)
+        print(f"Also created: {zip_path_simple.name}")
+    except Exception as e:
+        print(f"WARNING: Could not create {zip_name_simple}: {e}")
     print()
     print("Next steps:")
-    print("  1. Upload this ZIP to GitHub Releases")
+    print("  1. Upload the ZIP to GitHub Releases")
     print("  2. Users download and extract the entire ZIP")
     print("  3. Run CyberDefense.exe from the extracted folder")
     print()

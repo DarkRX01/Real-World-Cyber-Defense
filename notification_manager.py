@@ -1,12 +1,16 @@
 """
-NotificationManager: Smart notification system with debouncing, batching, and cooldown.
-Prevents spam; user-configurable per category. Use this instead of calling tray.showMessage directly.
+NotificationManager: Smart notification system with debouncing, batching, cooldown, and queue flushing.
+
+Why this exists:
+- Prevent tray popup spam (cooldowns + batching)
+- Avoid Qt event-loop overload / self-kill when many events occur (queue + limited flush rate)
+- Centralize severity and per-category mute logic
 """
 
 import time
-from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import Callable, Optional, Deque
+from collections import deque
 
 # Severity maps to QSystemTrayIcon.MessageIcon
 INFO = "info"
@@ -44,17 +48,19 @@ class NotificationManager:
 
     def __init__(
         self,
-        show_fn: Callable[[str, str, str, int], None],
+        show_fn: Callable[[str, str, int, int], None],
         config: Optional[NotificationConfig] = None,
     ):
         """
-        show_fn(tile, message, severity, msecs) - e.g. tray.showMessage(title, msg, icon, msecs)
+        show_fn(title, message, icon_int, msecs) - e.g. tray.showMessage(title, msg, icon_enum, msecs)
         """
         self._show_fn = show_fn
         self._config = config or NotificationConfig()
         self._last_shown: dict[str, float] = {}
+        # Pending (batched) notifications waiting for cooldown expiry
         self._pending: dict[str, PendingNotification] = {}
-        self._batch_timer: Optional[object] = None  # QTimer if we use it; for now we flush on next notify
+        # Queue to prevent event-loop overload. Flushed via QTimer in the GUI every N seconds.
+        self._queue: Deque[PendingNotification] = deque(maxlen=500)
 
     def update_config(self, config: NotificationConfig) -> None:
         self._config = config
@@ -99,7 +105,21 @@ class NotificationManager:
         except Exception:
             pass
         self._last_shown[n.category] = time.monotonic()
-        self._pending.pop(f"{n.category}:{n.title}", None)
+
+    def enqueue(
+        self,
+        title: str,
+        message: str,
+        category: str = "other",
+        severity: str = WARNING,
+    ) -> None:
+        """
+        Enqueue a notification request. This does NOT immediately show popups.
+        Call flush_queue() periodically from a QTimer (e.g. every 5s).
+        """
+        if self._is_muted(category):
+            return
+        self._queue.append(PendingNotification(title=title, message=message, category=category, severity=severity))
 
     def notify(
         self,
@@ -108,45 +128,44 @@ class NotificationManager:
         category: str = "other",
         severity: str = WARNING,
     ) -> None:
+        """Backward-compatible API: enqueue instead of immediate show (safer under load)."""
+        self.enqueue(title=title, message=message, category=category, severity=severity)
+
+    def flush_queue(self, max_to_show: int = 3) -> None:
         """
-        Request a notification. May be debounced, batched, or suppressed.
-        category: "file", "network", "phishing", "tracker", "vpn", "behavioral", "update", "other"
-        severity: "info", "warning", "critical"
+        Flush queued notifications with cooldown + batching + max rate.
+        Call this from GUI QTimer (e.g. every 5 seconds).
         """
-        if self._is_muted(category):
-            return
-
-        key = f"{category}:{title}"
-        now = time.monotonic()
-
-        if self._config.batch_similar:
-            if key in self._pending:
-                self._pending[key].count += 1
-                self._pending[key].timestamp = now
-                # If we're in cooldown, the batched one will show when cooldown expires
-                if not self._in_cooldown(category):
-                    self._do_show(self._pending[key])
-                    del self._pending[key]
-                return
-            else:
-                n = PendingNotification(title=title, message=message, category=category, severity=severity)
-                if self._in_cooldown(category):
-                    self._pending[key] = n
-                    return
-                self._do_show(n)
-                return
-
-        if self._in_cooldown(category):
-            self._pending[key] = PendingNotification(
-                title=title, message=message, category=category, severity=severity
-            )
-            return
-
-        self._do_show(PendingNotification(title=title, message=message, category=category, severity=severity))
-
-    def flush_pending(self) -> None:
-        """Show any pending batched notifications (e.g. on cooldown expiry)."""
+        shown = 0
+        # First, try to release any pending batched notifications whose cooldown expired
         for key, n in list(self._pending.items()):
+            if shown >= max_to_show:
+                break
             if not self._is_muted(n.category) and not self._in_cooldown(n.category):
                 self._do_show(n)
                 del self._pending[key]
+                shown += 1
+
+        # Then, consume from queue (batch/cooldown)
+        while self._queue and shown < max_to_show:
+            n = self._queue.popleft()
+            if self._is_muted(n.category):
+                continue
+            key = f"{n.category}:{n.title}"
+            if self._config.batch_similar:
+                if key in self._pending:
+                    self._pending[key].count += 1
+                    self._pending[key].timestamp = time.monotonic()
+                    continue
+                if self._in_cooldown(n.category):
+                    self._pending[key] = n
+                    continue
+                self._do_show(n)
+                shown += 1
+                continue
+            # no batching
+            if self._in_cooldown(n.category):
+                self._pending[key] = n
+                continue
+            self._do_show(n)
+            shown += 1
