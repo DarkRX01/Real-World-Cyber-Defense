@@ -5,6 +5,7 @@ Provides URL scanning, phishing detection, tracker blocking, and download analys
 All processing is local; no cloud dependency for core features.
 """
 
+import hashlib
 import re
 import ipaddress
 import math
@@ -484,6 +485,30 @@ def scan_file_entropy(filepath: str) -> ThreatResult:
         )
 
 
+def compute_file_hash(filepath: str, algorithm: str = "sha256", max_bytes: Optional[int] = None) -> Optional[str]:
+    """
+    Compute hash of file for signatures and forensics.
+    Uses hashlib; reads in chunks for large files. max_bytes=None = full file.
+    """
+    try:
+        path = Path(filepath)
+        if not path.exists() or not path.is_file():
+            return None
+        h = hashlib.new(algorithm)
+        with path.open("rb") as f:
+            if max_bytes is None:
+                while True:
+                    chunk = f.read(65536)
+                    if not chunk:
+                        break
+                    h.update(chunk)
+            else:
+                h.update(f.read(max_bytes))
+        return h.hexdigest()
+    except (OSError, IOError, ValueError):
+        return None
+
+
 def is_eicar_bytes(data: bytes) -> bool:
     """Return True if data contains the EICAR test string (any variant)."""
     if not data:
@@ -523,37 +548,61 @@ def scan_file_eicar(filepath: str) -> Optional[ThreatResult]:
 
 def scan_file_comprehensive(filepath: str, sensitivity: Sensitivity = Sensitivity.MEDIUM) -> ThreatResult:
     """
-    Comprehensive file scan: EICAR + optional YARA + entropy + extension + size.
-    Returns ThreatResult.
+    Comprehensive file scan: EICAR + hash + optional YARA + PE heuristics + entropy + extension + size.
+    Content checks and hashlib hashes for real-time detection.
     """
-    # EICAR test file (standard AV test)
+    path = Path(filepath)
+    details_extra = {}
+
+    # EICAR test file (standard AV test) — must detect via file hooks
     eicar_result = scan_file_eicar(filepath)
     if eicar_result is not None:
+        details_extra["sha256"] = compute_file_hash(filepath, max_bytes=1024 * 1024)
+        if details_extra.get("sha256"):
+            eicar_result.details.update(details_extra)
         return eicar_result
+
+    # File hash for signatures and forensics (first 10MB for speed)
+    file_hash = compute_file_hash(filepath, max_bytes=10 * 1024 * 1024)
+    if file_hash:
+        details_extra["sha256"] = file_hash
+
+    # Optional: PE heuristics (packed exe, high entropy sections)
+    try:
+        from detection.heuristic_pe import scan_file_pe_heuristics
+        pe_result = scan_file_pe_heuristics(filepath)
+        if pe_result is not None and pe_result.is_threat:
+            pe_result.details.update(details_extra)
+            return pe_result
+    except Exception:
+        pass
 
     # Optional: YARA rules (when yara-python and yara_rules/ are present)
     try:
         from detection.yara_engine import scan_file_yara
         yara_result = scan_file_yara(filepath)
         if yara_result is not None and yara_result.is_threat:
+            yara_result.details.update(details_extra)
             return yara_result
     except Exception:
         pass
 
-    # Check entropy first (most important for packed malware)
+    # Check entropy (packed/encrypted malware)
     entropy_result = scan_file_entropy(filepath)
     if entropy_result.is_threat and entropy_result.severity in ["high", "medium"]:
+        entropy_result.details.update(details_extra)
         return entropy_result
-    
+
     # Check file extension and size
-    path = Path(filepath)
     download_result = analyze_download(
         filename=path.name,
         download_url="",
         file_size_bytes=path.stat().st_size if path.exists() else None
     )
-    
     if download_result.is_threat:
+        download_result.details.update(details_extra)
         return download_result
-    
+
+    if details_extra:
+        entropy_result.details.update(details_extra)
     return entropy_result if not entropy_result.is_threat else download_result

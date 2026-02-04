@@ -35,12 +35,19 @@ import os
 
 block_cipher = None
 
+# Project root so PyInstaller finds threat_engine, detection, etc.
 a = Analysis(
     ['app_main.py'],
-    pathex=[],
+    pathex=[os.getcwd()],
     binaries=[],
     datas=[('icons/shield.svg', 'icons')] if os.path.exists(os.path.join('icons', 'shield.svg')) else [],
-    hiddenimports=['PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets'],
+    hiddenimports=[
+        'PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets',
+        'threat_engine', 'background_service',
+        'realtime_monitor', 'quarantine', 'update_system',
+        'signature_updater', 'vpn_client', 'ransomware_shield', 'anomaly_detector',
+        'detection', 'detection.yara_engine', 'detection.behavioral', 'detection.ml_detector', 'detection.heuristic_pe',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -98,8 +105,8 @@ VSVersionInfo(
   ffi=FixedFileInfo(
     # filevers and prodvers should be always a tuple with four items: (1, 2, 3, 4)
     # Set not needed items to zero 0.
-    filevers=(2,0,0,0),
-    prodvers=(2,0,0,0),
+    filevers=(2,2,0,0),
+    prodvers=(2,2,0,0),
     # Contains a bitmask that specifies the valid bits 'flags'r
     mask=0x3f,
     # Contains a bitmask that specifies the Boolean attributes of the file.
@@ -123,12 +130,12 @@ VSVersionInfo(
         u'040904B0',
         [StringStruct(u'CompanyName', u'Cyber Defense Security'),
         StringStruct(u'FileDescription', u'Real-World Cyber Defense Tool'),
-        StringStruct(u'FileVersion', u'2.0.0.0'),
+        StringStruct(u'FileVersion', u'2.2.0.0'),
         StringStruct(u'InternalName', u'CyberDefense'),
-        StringStruct(u'LegalCopyright', u'Copyright (C) 2024'),
+        StringStruct(u'LegalCopyright', u'Copyright (C) 2024-2025'),
         StringStruct(u'OriginalFilename', u'CyberDefense.exe'),
         StringStruct(u'ProductName', u'Cyber Defense'),
-        StringStruct(u'ProductVersion', u'2.0.0.0')])
+        StringStruct(u'ProductVersion', u'2.2.0.0')])
       ]), 
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]
@@ -221,6 +228,9 @@ HOW TO RUN (easy):
   Double-click:  Run Cyber Defense.bat
 
   Or double-click:  CyberDefense.exe
+
+  IMPORTANT: Use the .bat or .exe above. Do NOT run "python app_main.py"
+  from this folder (this folder does not contain Python scripts).
 
   The app will appear in your system tray (near the clock).
   Double-click the tray icon to open the main window.

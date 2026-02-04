@@ -1,8 +1,8 @@
 # Update Everything on GitHub
 
-**Latest build:** The updated EXE (new GUI, v2.1.0) is in `releases/CyberDefense-Windows-Portable.zip`. A copy was also placed in your **Downloads** folder. Extract and run **Run Cyber Defense.bat** or **CyberDefense.exe**.
+**Latest build:** The updated EXE is in `releases/CyberDefense-Windows-Portable.zip`. Extract and run **Run Cyber Defense.bat** or **CyberDefense.exe**.
 
-Follow these steps to push all changes to your GitHub repository.
+This guide covers pushing the **Core Detection Overhaul** and **VPN** changes to your GitHub repository.
 
 ---
 
@@ -46,14 +46,15 @@ git add GETTING_STARTED_DESKTOP.md TROUBLESHOOTING.md
 ## 3. Commit
 
 ```bash
-git commit -m "v2.1.0: Production improvements, UX, README & GitHub updates
+git commit -m "Core Detection Overhaul + VPN integration
 
-- Detection: YARA, ML, behavioral monitoring (optional in Settings)
-- Real-time file monitor (watchdog), quarantine, update system (2h)
-- EICAR detection, CI build+EICAR scan, packaging (WiX/AppImage/DMG)
-- Tray-first UX, tooltips, README-FIRST and launcher for EXE
-- README and USER-GUIDE rewritten; GitHub issue/PR templates
-- Changelog 2.1.0; minifilter-rust scaffold; SIGNING-SELF-DEFENSE"
+- Real-time FS: default watch paths (Downloads/Desktop/Temp/user dirs), EICAR + hashlib hashes
+- Signature DB: YARA from GitHub, ClamAV daily/main via signature_updater + update_system
+- PE heuristics (detection/heuristic_pe.py), behavioral CPU spike detection
+- Ransomware shield: honeypots + mass-change detector; honeypot check in realtime monitor
+- Anomaly detector (simple baseline), CORE-DETECTION-OVERHAUL.md
+- VPN: vpn_client.py WireGuard connect/disconnect, kill-switch; tray menu + Settings
+- README/CHANGELOG/GITHUB-UPDATE updated"
 ```
 
 ---
@@ -96,8 +97,8 @@ git push -u origin main
 1. Open your repo on GitHub.
 2. Click the **⚙️ (gear)** next to **About**.
 3. Set **Description** to something like:  
-   `Desktop security app: phishing & tracker detection, real-time file monitor, quarantine. Tray-first, user-friendly. Windows & Linux.`
-4. Add **Topics** (e.g. `security`, `phishing-detection`, `malware`, `windows`, `python`, `pyqt5`).
+   `Desktop security: phishing & tracker detection, real-time file monitor, ransomware honeypots, VPN (WireGuard), quarantine. Tray-first. Windows & Linux.`
+4. Add **Topics** (e.g. `security`, `phishing-detection`, `malware`, `vpn`, `wireguard`, `windows`, `python`, `pyqt5`).
 5. Save.
 
 ---
@@ -107,7 +108,7 @@ git push -u origin main
 - [ ] `pytest tests/` passes (or at least `tests/test_eicar.py` and `tests/test_threat_engine.py`)
 - [ ] No secrets or API keys in committed files
 - [ ] README and USER-GUIDE links are correct
-- [ ] CHANGELOG and pyproject.toml version match (2.1.0)
+- [ ] CHANGELOG [Unreleased] section reflects Core Detection Overhaul + VPN
 
 ---
 

@@ -1,6 +1,6 @@
 """
 Real-World Cyber Defense - Desktop Application
-Version: 2.0.0
+Version: 2.1.0
 License: MIT
 
 A powerful, lightweight desktop security tool for Windows and Linux
@@ -10,7 +10,7 @@ Author: DarkRX01
 Repository: https://github.com/DarkRX01/Real-World-Cyber-Defense
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __author__ = "DarkRX01"
 __license__ = "MIT"
 
