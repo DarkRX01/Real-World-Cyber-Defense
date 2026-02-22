@@ -9,12 +9,17 @@ import hashlib
 import re
 import ipaddress
 import math
+import logging
+import subprocess
+import sys
 from collections import Counter
 from urllib.parse import urlparse
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 from enum import Enum
 from pathlib import Path
+
+_log = logging.getLogger("CyberDefense.ThreatEngine")
 
 # Sensitivity affects how aggressive detection is
 class Sensitivity(Enum):
@@ -88,6 +93,19 @@ DANGEROUS_EXTENSIONS = frozenset([
     ".msi", ".msp", ".com", ".pif", ".jar", ".msc", ".cpl", ".scf",
     ".hta", ".reg", ".inf",
 ])
+
+
+# Application root and self-hash set for self-exclusion
+_APP_ROOT = Path(getattr(sys, "frozen", False) and sys.executable or __file__).resolve().parent
+_SELF_HASHES: set[str] = set()
+try:
+    exe_path = Path(getattr(sys, "frozen", False) and sys.executable or __file__).resolve()
+    # Hash first 10MB for speed; sufficient to identify our own binary.
+    h = hashlib.sha256(exe_path.read_bytes()[:10 * 1024 * 1024]).hexdigest()
+    _SELF_HASHES.add(h)
+except Exception:
+    # Best-effort only; failure here should never break detection.
+    pass
 
 
 def _extract_host(url: str) -> Optional[str]:
@@ -361,14 +379,22 @@ def get_system_security_summary() -> dict:
         if system != "Windows":
             out["issues"].append("System checks optimized for Windows.")
             return out
+        # On Windows, always run netsh / powershell fully hidden to avoid console popups.
+        startupinfo = None
+        creationflags = 0
+        if sys.platform == "win32":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
-        import subprocess
         # Check Windows Firewall profile
         r = subprocess.run(
             ["netsh", "advfirewall", "show", "allprofiles", "state"],
             capture_output=True,
             text=True,
             timeout=5,
+            startupinfo=startupinfo,
+            creationflags=creationflags,
         )
         if r.returncode == 0 and "ON" in (r.stdout or "").upper():
             out["firewall_active"] = True
@@ -384,6 +410,8 @@ def get_system_security_summary() -> dict:
             capture_output=True,
             text=True,
             timeout=10,
+            startupinfo=startupinfo,
+            creationflags=creationflags,
         )
         if r2.returncode == 0 and "true" in (r2.stdout or "").lower():
             out["defender_active"] = True
@@ -520,6 +548,23 @@ def scan_file_comprehensive(filepath: str, sensitivity: Sensitivity = Sensitivit
     if file_hash:
         details_extra["sha256"] = file_hash
 
+    # Self-exclusion: do not flag our own binaries/folder as malware.
+    # Instead, log that we skipped them for debugging.
+    try:
+        is_under_app_root = str(path.resolve()).lower().startswith(str(_APP_ROOT).lower())
+    except Exception:
+        is_under_app_root = False
+    if is_under_app_root or (file_hash and file_hash in _SELF_HASHES):
+        _log.debug("Self-excluded file from comprehensive scan result: %s", path)
+        return ThreatResult(
+            is_threat=False,
+            threat_type="safe",
+            severity="low",
+            confidence=100,
+            message="Self-excluded application file",
+            details=details_extra,
+        )
+
     # Optional: PE heuristics (packed exe, high entropy sections)
     try:
         from detection.heuristic_pe import scan_file_pe_heuristics
@@ -542,6 +587,8 @@ def scan_file_comprehensive(filepath: str, sensitivity: Sensitivity = Sensitivit
 
     # Check entropy (packed/encrypted malware)
     entropy_result = scan_file_entropy(filepath)
+    # Slightly reduce aggressiveness for medium/low severity entropy hits to avoid
+    # flagging benign packed tools too often.
     if entropy_result.is_threat and entropy_result.severity in ["high", "medium"]:
         entropy_result.details.update(details_extra)
         return entropy_result

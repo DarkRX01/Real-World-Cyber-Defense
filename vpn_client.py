@@ -57,11 +57,17 @@ def is_vpn_connected(interface_hint: Optional[str] = None) -> bool:
             pass
     if _is_windows():
         try:
+            # Run netsh fully hidden to avoid any console window flashing.
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
             r = subprocess.run(
                 ["netsh", "interface", "show", "interface"],
                 capture_output=True,
                 text=True,
                 timeout=5,
+                startupinfo=startupinfo,
+                creationflags=creationflags,
             )
             if r.returncode == 0 and "WireGuard" in (r.stdout or ""):
                 return True

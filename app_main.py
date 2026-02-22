@@ -53,7 +53,7 @@ from PyQt5.QtWidgets import (
     QFrame,
 )
 
-APP_VERSION = "2.3.1"
+APP_VERSION = "3.0.0"  # Major upgrade: quiet, clean, enterprise-grade
 
 from threat_engine import (
     ThreatResult,
@@ -63,6 +63,32 @@ from threat_engine import (
     get_system_security_summary,
 )
 from background_service import BackgroundService
+
+# APP SELF-EXCLUSION - Don't flag ourselves as a threat
+_APP_HASHES = set()  # Will be populated during init
+_APP_PATHS = set()  # Whitelist our own paths
+
+def _init_app_whitelist():
+    """Initialize whitelist of this app to prevent self-detection."""
+    global _APP_HASHES, _APP_PATHS
+    try:
+        import hashlib
+        if getattr(sys, "frozen", False):
+            exe_path = Path(sys.executable)
+        else:
+            exe_path = Path(__file__)
+        
+        _APP_PATHS.add(str(exe_path.resolve()))
+        _APP_PATHS.add(str(_APP_ROOT))
+        
+        # Hash our executable
+        try:
+            with open(exe_path, 'rb') as f:
+                _APP_HASHES.add(hashlib.sha256(f.read()).hexdigest())
+        except:
+            pass
+    except:
+        pass
 
 
 def _config_dir() -> Path:
@@ -163,14 +189,19 @@ def default_settings() -> dict:
         "enable_auto_updates": True,
         "enable_behavioral_monitor": True,
         "enable_vpn": False,
+        "vpn_provider": "none",  # 'none', 'mullvad', 'adguard', 'protonvpn', 'custom'
         "vpn_config_path": "",
         "vpn_kill_switch": False,
-        "notif_cooldown_seconds": 30.0,
+        "enable_autostart": False,  # Start with Windows
+        # Notification / noise controls - QUIET BY DEFAULT
+        "notif_cooldown_seconds": 120.0,  # 2 min cooldown for less spam
         "notif_batch_similar": True,
         "notif_mute_file": False,
-        "notif_mute_network": False,
-        "notif_mute_vpn": False,
-        "notif_mute_behavioral": False,
+        "notif_mute_network": True,  # Quiet network monitoring by default
+        "notif_mute_vpn": True,  # Quiet VPN status by default
+        "notif_mute_behavioral": True,  # Quiet behavior alerts by default
+        "notif_min_severity": "critical",  # Only show CRITICAL alerts by default
+        "show_only_threats": True,  # Don't show empty/benign scan results
     }
 
 
@@ -341,6 +372,7 @@ class CyberDefenseApp(QMainWindow):
 
         self.settings = load_settings()
         self.threat_log: list = load_threat_log()
+        _init_app_whitelist()  # Initialize app self-exclusion
         self._paused = False
         self._stats = {"threats": 0, "trackers": 0, "phishing": 0}
         self._update_scheduler = None
@@ -655,6 +687,29 @@ class CyberDefenseApp(QMainWindow):
         thread.start()
 
     def _on_scan_threat(self, result, path):
+        # Check if this is the app itself (self-exclusion)
+        from pathlib import Path
+        import hashlib
+        try:
+            file_path = Path(path).resolve()
+            # Skip if path matches whitelisted app paths
+            if str(file_path) in _APP_PATHS or str(file_path.absolute()) in _APP_PATHS:
+                logger.info(f"Skipping self-detection in scan: {path}")
+                return
+            
+            # Skip if file hash matches whitelisted app hashes
+            if path.endswith((".exe", ".dll")):
+                try:
+                    with open(path, "rb") as f:
+                        file_hash = hashlib.sha256(f.read()).hexdigest()
+                        if file_hash in _APP_HASHES:
+                            logger.info(f"Skipping self-detection by hash in scan: {path}")
+                            return
+                except Exception:
+                    pass
+        except Exception as e:
+            logger.debug(f"Error checking self-exclusion in scan: {e}")
+        
         entry = {"time": datetime.now().isoformat(), "type": result.threat_type, "severity": result.severity, "url": path, "message": result.message, "confidence": result.confidence}
         self.threat_log.append(entry)
         self._stats["threats"] += 1
@@ -768,19 +823,38 @@ class CyberDefenseApp(QMainWindow):
         self.cb_notifications.setToolTip("Show a popup when a threat is detected.")
         self.cb_start_minimized = QCheckBox("Start minimized to tray (recommended)")
         self.cb_start_minimized.setToolTip("Only show the tray icon on startup; double-click tray to open the window.")
+        self.cb_autostart = QCheckBox("Start with Windows (autostart)")
+        self.cb_autostart.setToolTip("Automatically launch Cyber Defense when Windows starts.")
         self.cb_realtime_monitor = QCheckBox("Real-time file monitoring (Downloads/Desktop)")
         self.cb_realtime_monitor.setToolTip("Watch Downloads and Desktop for new files and scan them immediately.")
         self.cb_auto_updates = QCheckBox("Auto-update threat definitions every 2 hours")
         self.cb_auto_updates.setToolTip("Keep blocklists (ClamAV, URLhaus, PhishTank) up to date.")
         self.cb_behavioral_monitor = QCheckBox("Behavioral monitoring (suspicious process detection)")
         self.cb_behavioral_monitor.setToolTip("Watch for suspicious process patterns (e.g. encoded PowerShell). Optional; requires no extra deps.")
-        self.cb_vpn = QCheckBox("VPN integration (WireGuard)")
-        self.cb_vpn.setToolTip("Use WireGuard config for connect/disconnect from tray. Install WireGuard separately.")
+        
+        # VPN Provider Selection
+        vpn_provider_layout = QHBoxLayout()
+        vpn_provider_layout.addWidget(QLabel("VPN Provider:"))
+        self.vpn_provider_combo = QComboBox()
+        self.vpn_provider_combo.addItems([
+            "None (disabled)",
+            "AdGuard DNS",
+            "Mullvad (open-source)",
+            "ProtonVPN",
+            "WireGuard (custom)",
+            "OpenVPN (custom)"
+        ])
+        self.vpn_provider_combo.setToolTip("Select your preferred VPN provider or use custom WireGuard/OpenVPN config.")
+        vpn_provider_layout.addWidget(self.vpn_provider_combo)
+        vpn_provider_layout.addStretch()
+        
+        self.cb_vpn = QCheckBox("Enable VPN integration")
+        self.cb_vpn.setToolTip("Use configured VPN for connect/disconnect from tray.")
         self.cb_vpn_kill_switch = QCheckBox("VPN kill-switch (alert when VPN drops)")
         self.cb_vpn_kill_switch.setToolTip("Show critical alert if VPN disconnects while enabled. No data sent; local-only.")
         self.vpn_config_edit = QLineEdit()
-        self.vpn_config_edit.setPlaceholderText("Path to WireGuard .conf (e.g. C:\\Users\\You\\wg0.conf)")
-        self.vpn_config_edit.setToolTip("Full path to your WireGuard configuration file.")
+        self.vpn_config_edit.setPlaceholderText("Path to config file (e.g. C:\\Users\\You\\wireguard.conf)")
+        self.vpn_config_edit.setToolTip("Full path to your VPN configuration file (for custom providers).")
 
         self.sensitivity_combo = QComboBox()
         self.sensitivity_combo.addItems(["Low", "Medium", "High", "Extreme"])
@@ -789,11 +863,13 @@ class CyberDefenseApp(QMainWindow):
         for c in (
             self.cb_clipboard, self.cb_tracker, self.cb_phishing, self.cb_download,
             self.cb_url_scan, self.cb_notifications, self.cb_start_minimized,
+            self.cb_autostart,
             self.cb_realtime_monitor, self.cb_auto_updates, self.cb_behavioral_monitor,
             self.cb_vpn, self.cb_vpn_kill_switch,
         ):
             layout.addWidget(c)
-        layout.addWidget(QLabel("VPN config path (WireGuard):"))
+        layout.addLayout(vpn_provider_layout)
+        layout.addWidget(QLabel("VPN config path (for custom providers):"))
         layout.addWidget(self.vpn_config_edit)
         layout.addWidget(QLabel("Sensitivity:"))
         layout.addWidget(self.sensitivity_combo)
@@ -812,9 +888,16 @@ class CyberDefenseApp(QMainWindow):
         notif_layout.addWidget(self.cb_notif_batch)
         notif_layout.addWidget(QLabel("Cooldown (seconds):"))
         self.notif_cooldown_spin = QLineEdit()
-        self.notif_cooldown_spin.setPlaceholderText("25")
+        self.notif_cooldown_spin.setPlaceholderText("60")
         self.notif_cooldown_spin.setMaximumWidth(80)
         notif_layout.addWidget(self.notif_cooldown_spin)
+        notif_layout.addWidget(QLabel("Notify minimum severity:"))
+        self.notif_min_sev_combo = QComboBox()
+        self.notif_min_sev_combo.addItems(["Info", "Warning", "Critical"])
+        self.notif_min_sev_combo.setToolTip(
+            "Lower = noisier, higher = only important alerts. Default is Warning."
+        )
+        notif_layout.addWidget(self.notif_min_sev_combo)
         layout.addWidget(notif_grp)
 
         sys_grp = QGroupBox("System Security Check")
@@ -856,6 +939,10 @@ class CyberDefenseApp(QMainWindow):
         settings_a = menu.addAction("Settings")
         settings_a.triggered.connect(self._open_settings)
         menu.addSeparator()
+        # Optional uninstaller entry – launches uninstall.py / uninstall.bat if present.
+        uninstall_a = menu.addAction("Uninstall Cyber Defense…")
+        uninstall_a.triggered.connect(self._launch_uninstaller)
+        menu.addSeparator()
         exit_a = menu.addAction("Quit")
         exit_a.triggered.connect(self._quit)
         self.tray.setContextMenu(menu)
@@ -888,12 +975,13 @@ class CyberDefenseApp(QMainWindow):
 
         cfg = NotificationConfig(
             enabled=bool(self.settings.get("enable_notifications", True)),
-            cooldown_seconds=float(self.settings.get("notif_cooldown_seconds", 25)),
+            cooldown_seconds=float(self.settings.get("notif_cooldown_seconds", 60)),
             batch_similar=bool(self.settings.get("notif_batch_similar", True)),
             mute_file_threats=bool(self.settings.get("notif_mute_file", False)),
             mute_network_threats=bool(self.settings.get("notif_mute_network", False)),
             mute_vpn_status=bool(self.settings.get("notif_mute_vpn", False)),
             mute_behavioral=bool(self.settings.get("notif_mute_behavioral", False)),
+            min_severity=(self.settings.get("notif_min_severity") or "warning"),
         )
         self._notif_mgr = NotificationManager(show_fn, cfg)
 
@@ -986,19 +1074,37 @@ class CyberDefenseApp(QMainWindow):
         self.cb_url_scan.setChecked(bool(s.get("enable_url_scan", True)))
         self.cb_notifications.setChecked(bool(s.get("enable_notifications", True)))
         self.cb_start_minimized.setChecked(bool(s.get("start_minimized", True)))
+        self.cb_autostart.setChecked(bool(s.get("enable_autostart", False)))
         self.cb_realtime_monitor.setChecked(bool(s.get("enable_realtime_monitor", False)))
         self.cb_auto_updates.setChecked(bool(s.get("enable_auto_updates", True)))
         self.cb_behavioral_monitor.setChecked(bool(s.get("enable_behavioral_monitor", False)))
         self.cb_vpn.setChecked(bool(s.get("enable_vpn", False)))
         self.cb_vpn_kill_switch.setChecked(bool(s.get("vpn_kill_switch", False)))
         self.vpn_config_edit.setText(s.get("vpn_config_path", "") or "")
+        
+        # Set VPN provider combo
+        provider_map = {
+            "none": 0,
+            "adguard": 1,
+            "mullvad": 2,
+            "protonvpn": 3,
+            "wireguard": 4,
+            "openvpn": 5,
+        }
+        provider = s.get("vpn_provider", "none").lower()
+        self.vpn_provider_combo.setCurrentIndex(provider_map.get(provider, 0))
+        
         if hasattr(self, "cb_notif_mute_file"):
             self.cb_notif_mute_file.setChecked(bool(s.get("notif_mute_file", False)))
-            self.cb_notif_mute_network.setChecked(bool(s.get("notif_mute_network", False)))
-            self.cb_notif_mute_vpn.setChecked(bool(s.get("notif_mute_vpn", False)))
-            self.cb_notif_mute_behavioral.setChecked(bool(s.get("notif_mute_behavioral", False)))
+            self.cb_notif_mute_network.setChecked(bool(s.get("notif_mute_network", True)))
+            self.cb_notif_mute_vpn.setChecked(bool(s.get("notif_mute_vpn", True)))
+            self.cb_notif_mute_behavioral.setChecked(bool(s.get("notif_mute_behavioral", True)))
             self.cb_notif_batch.setChecked(bool(s.get("notif_batch_similar", True)))
-            self.notif_cooldown_spin.setText(str(int(s.get("notif_cooldown_seconds", 25))))
+            self.notif_cooldown_spin.setText(str(int(s.get("notif_cooldown_seconds", 120))))
+            # Map stored min severity to combo index
+            min_sev = (s.get("notif_min_severity") or "critical").lower()
+            idx = {"info": 0, "warning": 1, "critical": 2}.get(min_sev, 2)
+            self.notif_min_sev_combo.setCurrentIndex(idx)
         sens = s.get("sensitivity", "MEDIUM").capitalize()
         idx = self.sensitivity_combo.findText(sens)
         if idx >= 0:
@@ -1012,6 +1118,7 @@ class CyberDefenseApp(QMainWindow):
         self.settings["enable_url_scan"] = self.cb_url_scan.isChecked()
         self.settings["enable_notifications"] = self.cb_notifications.isChecked()
         self.settings["start_minimized"] = self.cb_start_minimized.isChecked()
+        self.settings["enable_autostart"] = self.cb_autostart.isChecked()
         self.settings["enable_realtime_monitor"] = self.cb_realtime_monitor.isChecked()
         self.settings["enable_auto_updates"] = self.cb_auto_updates.isChecked()
         self.settings["enable_behavioral_monitor"] = self.cb_behavioral_monitor.isChecked()
@@ -1019,6 +1126,14 @@ class CyberDefenseApp(QMainWindow):
         self.settings["vpn_kill_switch"] = self.cb_vpn_kill_switch.isChecked()
         self.settings["vpn_config_path"] = self.vpn_config_edit.text().strip()
         self.settings["sensitivity"] = self.sensitivity_combo.currentText().upper()
+        
+        # Save VPN provider
+        provider_map_rev = {
+            0: "none", 1: "adguard", 2: "mullvad", 3: "protonvpn",
+            4: "wireguard", 5: "openvpn"
+        }
+        self.settings["vpn_provider"] = provider_map_rev.get(self.vpn_provider_combo.currentIndex(), "none")
+        
         if hasattr(self, "cb_notif_mute_file"):
             self.settings["notif_mute_file"] = self.cb_notif_mute_file.isChecked()
             self.settings["notif_mute_network"] = self.cb_notif_mute_network.isChecked()
@@ -1026,20 +1141,29 @@ class CyberDefenseApp(QMainWindow):
             self.settings["notif_mute_behavioral"] = self.cb_notif_mute_behavioral.isChecked()
             self.settings["notif_batch_similar"] = self.cb_notif_batch.isChecked()
             try:
-                self.settings["notif_cooldown_seconds"] = float(self.notif_cooldown_spin.text() or "25")
+                self.settings["notif_cooldown_seconds"] = float(self.notif_cooldown_spin.text() or "120")
             except ValueError:
-                self.settings["notif_cooldown_seconds"] = 25.0
+                self.settings["notif_cooldown_seconds"] = 120.0
+            # Persist minimum severity
+            sev_map = {0: "info", 1: "warning", 2: "critical"}
+            self.settings["notif_min_severity"] = sev_map.get(self.notif_min_sev_combo.currentIndex(), "critical")
+        
+        # Handle Windows autostart
+        if sys.platform == "win32":
+            self._set_windows_autostart(self.settings["enable_autostart"])
+        
         save_settings(self.settings)
         if hasattr(self, "_notif_mgr"):
             from notification_manager import NotificationConfig
             self._notif_mgr.update_config(NotificationConfig(
                 enabled=bool(self.settings.get("enable_notifications", True)),
-                cooldown_seconds=float(self.settings.get("notif_cooldown_seconds", 25)),
+                cooldown_seconds=float(self.settings.get("notif_cooldown_seconds", 60)),
                 batch_similar=bool(self.settings.get("notif_batch_similar", True)),
                 mute_file_threats=bool(self.settings.get("notif_mute_file", False)),
                 mute_network_threats=bool(self.settings.get("notif_mute_network", False)),
                 mute_vpn_status=bool(self.settings.get("notif_mute_vpn", False)),
                 mute_behavioral=bool(self.settings.get("notif_mute_behavioral", False)),
+                min_severity=(self.settings.get("notif_min_severity") or "warning"),
             ))
         self._service.update_settings(
             sensitivity=sensitivity_from_string(self.settings["sensitivity"]),
@@ -1069,6 +1193,36 @@ class CyberDefenseApp(QMainWindow):
                     pass
                 self._vpn_client = None
         QMessageBox.information(self, "Settings", "Settings saved.")
+
+    def _set_windows_autostart(self, enabled):
+        """Enable or disable Windows autostart via registry."""
+        try:
+            import winreg
+            from pathlib import Path
+            
+            app_exe = Path(sys.argv[0]).resolve()
+            reg_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+            app_name = "CyberDefense"
+            
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_path, 0, winreg.KEY_SET_VALUE)
+            except FileNotFoundError:
+                key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, reg_path)
+            
+            with key:
+                if enabled:
+                    # Add autostart entry
+                    winreg.SetValueEx(key, app_name, 0, winreg.REG_SZ, str(app_exe))
+                    logger.info("Added autostart registry entry for CyberDefense")
+                else:
+                    # Remove autostart entry
+                    try:
+                        winreg.DeleteValue(key, app_name)
+                        logger.info("Removed autostart registry entry for CyberDefense")
+                    except FileNotFoundError:
+                        pass  # Entry doesn't exist, which is fine
+        except Exception as e:
+            logger.error("Failed to set Windows autostart: %s", e)
 
     def _start_monitoring(self):
         self._service.start()
@@ -1291,7 +1445,36 @@ class CyberDefenseApp(QMainWindow):
         """Called when behavioral monitor detects a suspicious process."""
         if self._paused:
             return
-        detail = result.details.get("name") or result.details.get("reason") or "suspicious process"
+        # Ignore noise from core system processes and require multiple hits
+        # within a short window to avoid spamming for transient blips.
+        name = (result.details.get("name") or "").lower()
+        SYSTEM_WHITELIST = {
+            "system idle process",
+            "system",
+            "svchost.exe",
+            "csrss.exe",
+            "wininit.exe",
+            "services.exe",
+        }
+        if name in SYSTEM_WHITELIST:
+            return
+
+        # Rate-limit behavioral alerts per process/reason
+        now = time.monotonic()
+        window_sec = 60.0
+        required_hits = 3
+        key = name or (result.details.get("reason") or "unknown")
+        if not hasattr(self, "_behavioral_hits"):
+            self._behavioral_hits = {}
+        hit = self._behavioral_hits.get(key, {"count": 0, "first": now})
+        if now - hit["first"] > window_sec:
+            hit = {"count": 0, "first": now}
+        hit["count"] += 1
+        self._behavioral_hits[key] = hit
+        if hit["count"] < required_hits:
+            return
+
+        detail = name or result.details.get("reason") or "suspicious process"
         if len(self.threat_log) > 1000:
             self.threat_log = self.threat_log[-900:]
         entry = {
@@ -1361,6 +1544,30 @@ class CyberDefenseApp(QMainWindow):
     def _on_threat_detected(self, result: ThreatResult, url: str):
         if self._paused:
             return
+        
+        # Check if this is the app itself (self-exclusion)
+        from pathlib import Path
+        import hashlib
+        try:
+            file_path = Path(url).resolve()
+            # Skip if path matches whitelisted app paths
+            if str(file_path) in _APP_PATHS or str(file_path.absolute()) in _APP_PATHS:
+                logger.info(f"Skipping self-detection: {url}")
+                return
+            
+            # Skip if file hash matches whitelisted app hashes
+            if url.endswith((".exe", ".dll")):
+                try:
+                    with open(url, "rb") as f:
+                        file_hash = hashlib.sha256(f.read()).hexdigest()
+                        if file_hash in _APP_HASHES:
+                            logger.info(f"Skipping self-detection by hash: {url}")
+                            return
+                except Exception:
+                    pass
+        except Exception as e:
+            logger.debug(f"Error checking self-exclusion: {e}")
+        
         logger.info(f"Threat detected: {result.threat_type} - {url[:50]}... (confidence: {result.confidence}%)")
         if len(self.threat_log) > 1000:
             self.threat_log = self.threat_log[-900:]
@@ -1401,7 +1608,21 @@ class CyberDefenseApp(QMainWindow):
     def _refresh_threat_table(self):
         t = self.threat_table
         t.setRowCount(0)
+        
+        # Filter threats based on show_only_threats setting
+        show_only_threats = self.settings.get("show_only_threats", True)
+        threats_to_show = []
+        
         for e in reversed(self.threat_log[-400:]):
+            # If show_only_threats is enabled, filter out low-severity/info entries
+            if show_only_threats:
+                severity = (e.get("severity", "") or "").lower()
+                # Only show warning, high, critical
+                if severity not in ["warning", "high", "critical"]:
+                    continue
+            threats_to_show.append(e)
+        
+        for e in threats_to_show:
             row = t.rowCount()
             t.insertRow(row)
             time_item = QTableWidgetItem(e.get("time", "")[:19])

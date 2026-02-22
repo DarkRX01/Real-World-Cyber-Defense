@@ -12,22 +12,32 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional, Deque
 from collections import deque
 
-# Severity maps to QSystemTrayIcon.MessageIcon
+# Severity maps to QSystemTrayIcon.MessageIcon and to a comparable rank.
 INFO = "info"
 WARNING = "warning"
 CRITICAL = "critical"
+
+_SEVERITY_RANK = {
+    INFO: 0,
+    WARNING: 1,
+    CRITICAL: 2,
+}
 
 
 @dataclass
 class NotificationConfig:
     """User-configurable notification settings."""
     enabled: bool = True
-    cooldown_seconds: float = 30.0
+    # Per-category cooldown between popups (seconds). Higher = quieter.
+    cooldown_seconds: float = 60.0
     batch_similar: bool = True
     mute_file_threats: bool = False
     mute_network_threats: bool = False
     mute_vpn_status: bool = False
     mute_behavioral: bool = False
+    # Minimum severity that will be shown: "info" < "warning" < "critical"
+    # Default: only show warning/critical to avoid noise.
+    min_severity: str = WARNING
 
 
 @dataclass
@@ -65,6 +75,18 @@ class NotificationManager:
     def update_config(self, config: NotificationConfig) -> None:
         self._config = config
 
+    def _severity_allowed(self, severity: str) -> bool:
+        """
+        Return True if the requested severity meets or exceeds the configured
+        minimum severity threshold.
+
+        Example: if min_severity == "warning", "info" notifications are dropped,
+        but "warning"/"critical" are allowed.
+        """
+        rank = _SEVERITY_RANK.get(severity, _SEVERITY_RANK[WARNING])
+        min_rank = _SEVERITY_RANK.get(self._config.min_severity, _SEVERITY_RANK[WARNING])
+        return rank >= min_rank
+
     def _is_muted(self, category: str) -> bool:
         if not self._config.enabled:
             return True
@@ -92,7 +114,7 @@ class NotificationManager:
 
     def _do_show(self, n: PendingNotification) -> None:
         """Actually show the notification. icon: 0=Info, 1=Warning, 2=Critical for QSystemTrayIcon."""
-        if self._is_muted(n.category):
+        if self._is_muted(n.category) or not self._severity_allowed(n.severity):
             return
         title = n.title
         msg = n.message
@@ -117,7 +139,7 @@ class NotificationManager:
         Enqueue a notification request. This does NOT immediately show popups.
         Call flush_queue() periodically from a QTimer (e.g. every 5s).
         """
-        if self._is_muted(category):
+        if self._is_muted(category) or not self._severity_allowed(severity):
             return
         self._queue.append(PendingNotification(title=title, message=message, category=category, severity=severity))
 
@@ -149,7 +171,7 @@ class NotificationManager:
         # Then, consume from queue (batch/cooldown)
         while self._queue and shown < max_to_show:
             n = self._queue.popleft()
-            if self._is_muted(n.category):
+            if self._is_muted(n.category) or not self._severity_allowed(n.severity):
                 continue
             key = f"{n.category}:{n.title}"
             if self._config.batch_similar:

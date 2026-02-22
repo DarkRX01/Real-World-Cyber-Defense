@@ -1,53 +1,45 @@
 # -*- mode: python ; coding: utf-8 -*-
-import os
+from PyInstaller.utils.hooks import collect_all
 
-block_cipher = None
-current_dir = os.path.dirname(os.path.abspath(SPEC))
+datas = []
+binaries = []
+hiddenimports = ['PyQt5', 'threat_engine', 'background_service', 'notification_manager', 'vpn_client', 'ransomware_shield', 'realtime_monitor', 'network_monitor', 'registry_monitor', 'process_injection_detector', 'rootkit_detector', 'advanced_ransomware_detector', 'advanced_behavioral_analysis', 'threat_detection_orchestrator']
+tmp_ret = collect_all('yara')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+
 
 a = Analysis(
-    ['app_main.py', 'threat_engine.py', 'background_service.py'],
-    pathex=[current_dir],
-    binaries=[],
-    datas=[],
-    hiddenimports=['PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets', 'pyperclip'],
+    ['C:\\Users\\yamen.alkhoula.stude\\Documents\\Blue teaming\\cyber-defense-extension\\app_main.py'],
+    pathex=[],
+    binaries=binaries,
+    datas=datas,
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter', 'unittest', 'test'],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
+    excludes=[],
     noarchive=False,
+    optimize=0,
 )
-
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+pyz = PYZ(a.pure)
 
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.datas,
     [],
-    exclude_binaries=True,
     name='CyberDefense',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,
+    upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='icons/icon.ico' if os.path.exists('icons/icon.ico') else None,
-)
-
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=False,
-    upx_exclude=[],
-    name='CyberDefense',
 )

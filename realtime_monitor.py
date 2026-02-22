@@ -19,6 +19,9 @@ if str(_parent) not in sys.path:
     sys.path.insert(0, str(_parent))
 from threat_engine import ThreatResult
 
+# Application root for self-exclusion (never scan our own install folder).
+_APP_ROOT = Path(getattr(sys, "frozen", False) and sys.executable or __file__).resolve().parent
+
 # Prefer watchdog for cross-platform; Windows can use ReadDirectoryChangesW for lower latency
 USE_WATCHDOG = True
 
@@ -97,6 +100,13 @@ class RealtimeFileMonitor:
         p = Path(path)
         if not p.is_file():
             return False
+        # Self-exclusion: never scan inside our own install/bundle folder.
+        try:
+            if str(p.resolve()).lower().startswith(str(_APP_ROOT).lower()):
+                self._log.debug("Skipping self path from realtime scan: %s", p)
+                return False
+        except Exception:
+            pass
         suf = p.suffix.lower()
         if suf in self.extensions_to_watch:
             return True
