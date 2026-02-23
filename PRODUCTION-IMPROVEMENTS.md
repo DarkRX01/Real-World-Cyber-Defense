@@ -43,9 +43,12 @@ This document summarizes the fixes and additions made to address the production-
 
 - **`SIGNING-SELF-DEFENSE.md`**: EV code signing (~$80–300/year), `signtool` usage, SmartScreen submission; NSSM (Windows) and systemd (Linux) for running as a service so malware can’t easily kill the process.
 
-## 9. Kernel/driver (scaffold only)
+## 9. User-Mode Only Architecture (No Kernel Driver)
 
-- **`minifilter-rust/`**: Rust crate stub for a Windows minifilter. Real implementation requires WDK, wdk-rs, kernel build, and EV signing. See `minifilter-rust/README.md`.
+- **Design Decision**: Cyber Defense operates entirely in **user-mode** (ring 3). Real-time file monitoring uses **watchdog** (FileSystemWatcher on Windows, inotify on Linux) instead of a kernel minifilter.
+- **Why**: Kernel drivers require Windows Driver Kit (WDK), HLK certification, EV signing, and are difficult to distribute/maintain. User-mode monitoring with watchdog provides sufficient protection for most threats (phishing, known malware, ransomware patterns) without kernel complexity.
+- **Limitations**: Cannot detect kernel rootkits, kernel-mode injection, or SSDT hooks (documented in THREAT-MODEL.md). For production kernel protection, use Windows Defender (which has certified kernel drivers).
+- **Real-time Monitoring**: `realtime_monitor.py` uses event-driven watchdog for files in Downloads, Desktop, Temp, user directories. Provides immediate threat detection without polling. **Operates at user-mode level (ring 3)** – sufficient for phishing, ransomware, and malware patterns; cannot detect kernel rootkits (Windows Defender handles those).
 
 ## Optional dependencies
 

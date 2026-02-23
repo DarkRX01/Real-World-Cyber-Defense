@@ -4,14 +4,12 @@
 
 This tool is currently **educational/demonstration-level**, not production-grade security software. Here are the real issues:
 
-### 1. **No Kernel/Driver Protection** ❌
-- **Problem:** User-mode only. Malware runs in memory, registry, boot sector before we even see it.
-- **Impact:** Ransomware encrypts files before we can react.
-- **Real Solution Needed:**
-  - Windows: Minifilter driver (Windows Driver Kit)
-  - Linux: eBPF module
-  - Use Rust + `windows-driver` crate
-  - Hook at kernel level for real-time interception
+### 1. **User-Mode Only (No Kernel Driver)** ⚠️
+- **Design Decision:** Cyber Defense uses **watchdog-based event-driven file monitoring** (user-mode only, ring 3) instead of a kernel minifilter.
+- **Why This Choice:** Kernel drivers require WDK, HLK certification, EV signing, and are complex to maintain. Watchdog provides immediate real-time file detection for most common threats.
+- **Limitations:** Cannot detect kernel rootkits, SSDT hooks, or kernel-mode injection. These are detected by Windows Defender (which has certified kernel drivers).
+- **Good Enough For:** Phishing, known malware signatures, ransomware behavioral patterns, process injection from user-mode.
+- **Recommendation:** Run Cyber Defense **alongside** Windows Defender for comprehensive protection (user-mode + kernel-mode coverage).
 
 ### 2. **Detection is Basic** ❌
 - **Current:** Simple hashes, regex patterns, domain blocklists
@@ -106,12 +104,11 @@ This tool is currently **educational/demonstration-level**, not production-grade
 - [ ] Behavioral monitoring with ETW
 - [ ] Process tree analysis
 
-### Phase 3: Kernel-Level (4-6 months)
-- [ ] Windows minifilter driver
-- [ ] File system filter callbacks
-- [ ] Registry monitoring
-- [ ] Boot sector protection
-- [ ] Memory scanning hooks
+### Phase 3: Enhanced User-Mode Monitoring (3-4 months)
+- [ ] ETW (Event Tracing for Windows) integration for process/network events
+- [ ] Registry monitoring (user-mode via registry callbacks)
+- [ ] Enhanced memory scanning (user-mode pattern detection)
+- [ ] Behavioral graph analysis (parent-child process trees)
 
 ### Phase 4: ML & Advanced (3-4 months)
 - [ ] Train ML models on 10k+ samples

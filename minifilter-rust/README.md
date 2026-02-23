@@ -30,4 +30,5 @@ On Linux, use eBPF programs (e.g. LSM hooks or tracepoint on file open/write) to
 
 - [WDK minifilter sample](https://github.com/microsoft/Windows-driver-samples/tree/main/filesys/minifilter)
 - [wdk-rs](https://github.com/microsoft/wdk-rs)
+- [DRIVER-SPEC.md](DRIVER-SPEC.md) – Intended IRP operations, altitude, user-mode communication, certification.
 - “Windows Kernel Programming” (Pavel Yosifovich)

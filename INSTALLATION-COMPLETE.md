@@ -26,9 +26,10 @@ No Python needed, no error messages, automatic!
 ```
 1. Download: CyberDefense.exe
 2. Double-click
-3. If Windows warns: Click "More info" → "Run anyway"
+3. If SmartScreen warns: This is normal for unsigned apps. 
+   See SMARTSCREEN-WARNING.md for details and alternatives.
 ```
-Pre-compiled, ready to run.
+Pre-compiled, ready to run. Note: App is unsigned; consider building from source for verification.
 
 **Option 3: Source Code**
 ```

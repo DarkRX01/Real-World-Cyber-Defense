@@ -16,11 +16,11 @@ def create_release_package():
     print("=" * 70)
     print()
     
-    # Check if dist folder exists
+    # Check if dist folder exists (from build-safe-exe.py or build-final.py)
     dist_dir = Path("dist/CyberDefense")
     if not dist_dir.exists():
         print("ERROR: dist/CyberDefense not found!")
-        print("   Please run 'python build-final.py' first")
+        print("   Please run 'python build-safe-exe.py' first")
         return
     
     # Create releases folder
@@ -68,8 +68,8 @@ IMPORTANT:
 FIRST RUN:
 ----------
 If Windows SmartScreen shows a warning:
-  1. Click "More info"
-  2. Click "Run anyway"
+  We do NOT recommend bypassing SmartScreen. Safer: Build from source
+  (see GitHub) or use a signed build when available.
 
 If your antivirus blocks it:
   - False positives are common for unsigned apps

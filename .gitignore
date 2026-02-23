@@ -1,11 +1,12 @@
 # Build artifacts
 build/
-*.spec
-CyberDefense-safe.spec
-*.egg-info/
 dist/
+releases/*.zip
+*.spec
+*.egg-info/
+.eggs/
 
-# Data and rules (downloaded or generated)
+# Data and rules (downloaded at runtime)
 data/
 yara_rules/
 
@@ -15,9 +16,15 @@ __pycache__/
 *$py.class
 *.so
 .Python
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
 env/
 venv/
-*.egg
+.venv/
 
 # IDE
 .vscode/
@@ -29,12 +36,12 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
-.DS_Store?
 
-# Logs
+# Logs and temp
 *.log
-
-# Temporary files
 *.tmp
 temp/
 .temp/
+
+# User config (local)
+.cyber-defense/

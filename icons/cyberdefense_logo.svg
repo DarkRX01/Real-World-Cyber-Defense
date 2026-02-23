@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Modern DarkRX-style CyberDefense logo: sleek shield with neon accents -->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="CyberDefense logo">
+  <defs>
+    <linearGradient id="grad1" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#0ea5a0"/>
+      <stop offset="0.5" stop-color="#06b6d4"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feBlend in="SourceGraphic" in2="b" mode="screen"/>
+    </filter>
+  </defs>
+  <!-- Background rounded square -->
+  <rect x="0" y="0" width="512" height="512" rx="64" fill="#071021" />
+
+  <!-- Subtle vignette -->
+  <ellipse cx="256" cy="260" rx="220" ry="160" fill="black" opacity="0.12"/>
+
+  <!-- Shield base -->
+  <g transform="translate(96,72)">
+    <path d="M160 8 L320 64 C320 196 244 274 160 312 C76 274 0 196 0 64 Z"
+          fill="url(#grad1)" stroke="#041022" stroke-width="6" filter="url(#softGlow)"/>
+
+    <!-- Inner shield cut (metallic accent) -->
+    <path d="M160 28 L300 76 C300 192 236 256 160 288 C84 256 20 192 20 76 Z"
+          fill="rgba(255,255,255,0.04)" />
+
+    <!-- Network nodes / motif (neon) -->
+    <circle cx="160" cy="116" r="16" fill="#071021" stroke="#9ff3e5" stroke-width="6"/>
+    <circle cx="220" cy="170" r="10" fill="#071021" stroke="#ffd477" stroke-width="5"/>
+    <circle cx="100" cy="170" r="10" fill="#071021" stroke="#a9f0ff" stroke-width="5"/>
+    <path d="M160 116 L220 170" stroke="#9ff3e5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M160 116 L100 170" stroke="#9ff3e5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Small top accent -->
+    <rect x="128" y="30" width="64" height="8" rx="4" fill="#ffffff" opacity="0.06"/>
+  </g>
+
+  <!-- Tiny text mark (optional) -->
+  <g transform="translate(0,0)">
+    <text x="256" y="468" font-family="Helvetica, Arial, sans-serif" font-size="20" fill="#9fb4c9" text-anchor="middle" opacity="0.9">Cyber Defense</text>
+  </g>
+</svg>

@@ -27,29 +27,52 @@ def build_safe_windows_exe():
     # Install requirements
     print("[*] Installing dependencies...")
     subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"], check=True)
+
+    # Ensure icon.ico and logo PNG exist
+    icons_dir = Path("icons")
+    if not (icons_dir / "icon.ico").exists() or not (icons_dir / "cyberdefense_logo_256.png").exists():
+        print("[*] Generating app icon and logo...")
+        create_script = icons_dir / "create_icon_ico.py"
+        if create_script.exists():
+            subprocess.run([sys.executable, str(create_script)], check=False)
     
+    # Gather datas: icons, theme, tools
+    datas = []
+    root = Path(".")
+    if (root / "icons").exists():
+        for f in ["icon.ico", "cyberdefense_logo_256.png", "cyberdefense_logo.svg", "shield.svg"]:
+            p = root / "icons" / f
+            if p.exists():
+                datas.append((str(p), "icons"))
+    if (root / "dark_theme.qss").exists():
+        datas.append(("dark_theme.qss", "."))
+    datas_str = repr(datas)
+
     # Create safe PyInstaller spec file
-    spec_content = '''# -*- mode: python ; coding: utf-8 -*-
+    spec_content = f'''# -*- mode: python ; coding: utf-8 -*-
 
 import os
+from pathlib import Path
 
 block_cipher = None
+_root = Path(os.getcwd())
+_datas = {datas_str}
 
 # Project root so PyInstaller finds threat_engine, detection, etc.
 a = Analysis(
     ['app_main.py'],
     pathex=[os.getcwd()],
     binaries=[],
-    datas=[('icons/shield.svg', 'icons')] if os.path.exists(os.path.join('icons', 'shield.svg')) else [],
+    datas=_datas,
     hiddenimports=[
-        'PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets',
-        'threat_engine', 'background_service',
+        'PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets', 'PyQt5.QtSvg',
+        'threat_engine', 'background_service', 'utils',
         'realtime_monitor', 'quarantine', 'update_system',
         'signature_updater', 'vpn_client', 'ransomware_shield', 'anomaly_detector', 'notification_manager',
         'detection', 'detection.yara_engine', 'detection.behavioral', 'detection.ml_detector', 'detection.heuristic_pe',
     ],
     hookspath=[],
-    hooksconfig={},
+    hooksconfig={{}},
     runtime_hooks=[],
     excludes=['tkinter', 'unittest', 'test'],
     win_no_prefer_redirects=False,
@@ -76,7 +99,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='icons/icon.ico' if os.path.exists(os.path.join('icons', 'icon.ico')) else None,
+    icon='icons/icon.ico' if _root.joinpath('icons', 'icon.ico').exists() else None,
     version='version_info.txt' if os.path.exists('version_info.txt') else None,
 )
 
@@ -105,8 +128,8 @@ VSVersionInfo(
   ffi=FixedFileInfo(
     # filevers and prodvers should be always a tuple with four items: (1, 2, 3, 4)
     # Set not needed items to zero 0.
-    filevers=(2,2,0,0),
-    prodvers=(2,2,0,0),
+    filevers=(3,0,0,0),
+    prodvers=(3,0,0,0),
     # Contains a bitmask that specifies the valid bits 'flags'r
     mask=0x3f,
     # Contains a bitmask that specifies the Boolean attributes of the file.
@@ -130,12 +153,12 @@ VSVersionInfo(
         u'040904B0',
         [StringStruct(u'CompanyName', u'Cyber Defense Security'),
         StringStruct(u'FileDescription', u'Real-World Cyber Defense Tool'),
-        StringStruct(u'FileVersion', u'2.2.0.0'),
+        StringStruct(u'FileVersion', u'3.0.0.0'),
         StringStruct(u'InternalName', u'CyberDefense'),
         StringStruct(u'LegalCopyright', u'Copyright (C) 2024-2025'),
         StringStruct(u'OriginalFilename', u'CyberDefense.exe'),
         StringStruct(u'ProductName', u'Cyber Defense'),
-        StringStruct(u'ProductVersion', u'2.2.0.0')])
+        StringStruct(u'ProductVersion', u'3.0.0.0')])
       ]), 
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]
@@ -204,6 +227,15 @@ start "" "dist\\CyberDefense\\CyberDefense.exe"
         try:
             portable_dir = Path("dist/CyberDefense")
             portable_dir.mkdir(parents=True, exist_ok=True)
+            # Copy tools folder (system_cleaner.bat) for system cleaner feature
+            tools_src = Path("tools")
+            tools_dst = portable_dir / "tools"
+            if tools_src.exists():
+                import shutil
+                tools_dst.mkdir(parents=True, exist_ok=True)
+                for f in tools_src.iterdir():
+                    if f.is_file():
+                        shutil.copy2(f, tools_dst / f.name)
 
             launcher_path = portable_dir / "Run Cyber Defense.bat"
             launcher_content = """@echo off
@@ -245,8 +277,9 @@ FIRST TIME?
 
 IF WINDOWS WARNS (SmartScreen):
 -------------------------------
-  1. Click "More info"
-  2. Click "Run anyway"
+  We do NOT recommend bypassing SmartScreen ("Run anyway").
+  Safer: Build from source (see GitHub) or use a signed build when available.
+  See SMARTSCREEN-WARNING.md on GitHub for details.
 
 
 IF YOUR ANTIVIRUS BLOCKS IT:
@@ -265,6 +298,17 @@ Need help?  https://github.com/DarkRX01/Real-World-Cyber-Defense
 ========================================
 """
             readme_path.write_text(readme_content, encoding="utf-8")
+
+            # Create desktop shortcut helper
+            shortcut_script = portable_dir / "Create Desktop Shortcut.bat"
+            shortcut_content = '''@echo off
+set "APP=%~dp0CyberDefense.exe"
+set "DIR=%~dp0"
+echo Creating Cyber Defense shortcut on Desktop...
+powershell -NoProfile -Command "$W=New-Object -ComObject WScript.Shell; $S=$W.CreateShortcut([Environment]::GetFolderPath('Desktop')+'\\Cyber Defense.lnk'); $S.TargetPath='%APP%'; $S.WorkingDirectory='%DIR:~0,-1%'; $S.IconLocation='%APP%,0'; $S.Description='Cyber Defense'; $S.Save(); Write-Host 'Shortcut created on Desktop!'"
+pause
+'''
+            shortcut_script.write_text(shortcut_content, encoding="utf-8")
         except Exception:
             pass
         

@@ -417,6 +417,19 @@ QPushButton#WarningButton:hover {
     color: #ffedd5;
 }
 
+/* Gentle default button for neutral actions */
+QPushButton#DefaultButton {
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #14202b, stop:1 #0b1220);
+    border: 2px solid rgba(148, 163, 184, 0.15);
+    color: #dbeafe;
+}
+
+QPushButton#DefaultButton:hover {
+    border-color: rgba(6, 182, 212, 0.35);
+    color: #a5f3fc;
+}
+
 /* ============================================ */
 /* NOTIFICATION LABELS */
 /* ============================================ */

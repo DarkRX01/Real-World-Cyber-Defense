@@ -22,6 +22,7 @@ if not getattr(sys, "frozen", False):
 
 import json
 import logging
+import time
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
@@ -38,6 +39,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QTabWidget,
     QTableWidget,
+    QHeaderView,
     QTableWidgetItem,
     QLineEdit,
     QComboBox,
@@ -83,10 +85,16 @@ def _init_app_whitelist():
         
         # Hash our executable
         try:
-            with open(exe_path, 'rb') as f:
-                _APP_HASHES.add(hashlib.sha256(f.read()).hexdigest())
-        except:
-            pass
+            from utils import safe_hash_file
+            h = safe_hash_file(str(exe_path))
+            if h:
+                _APP_HASHES.add(h)
+        except Exception:
+            try:
+                with open(exe_path, 'rb') as f:
+                    _APP_HASHES.add(hashlib.sha256(f.read()).hexdigest())
+            except Exception:
+                pass
     except:
         pass
 
@@ -325,18 +333,16 @@ class VPNConnectWorker(QObject):
                 ok, msg = self.vpn_client_obj.disconnect()
             # After action, poll real status briefly so UI is accurate.
             try:
-                from vpn_client import is_vpn_connected
-                import time as _time
-                deadline = _time.monotonic() + (20.0 if self.connect else 10.0)
-                while _time.monotonic() < deadline:
-                    connected = is_vpn_connected()
+                deadline = time.monotonic() + (20.0 if self.connect else 10.0)
+                while time.monotonic() < deadline:
+                    connected = self.vpn_client_obj.is_connected()
                     if self.connect and connected:
                         ok = True
                         break
                     if (not self.connect) and (not connected):
                         ok = True
                         break
-                    _time.sleep(0.5)
+                    time.sleep(0.5)
             except Exception:
                 pass
             self.finished.emit(ok, msg)
@@ -387,7 +393,15 @@ class CyberDefenseApp(QMainWindow):
             enable_tracker_check=bool(self.settings.get("enable_tracker_check", True)),
         )
 
-        self._build_ui()
+        # Build UI; be defensive in case an older frozen EXE lacks the method.
+        if hasattr(self, "_build_ui") and callable(getattr(self, "_build_ui")):
+            try:
+                self._build_ui()
+            except Exception:
+                # Fall through to minimal UI builder
+                self._build_ui_fallback()
+        else:
+            self._build_ui_fallback()
         self._setup_tray()
         self._setup_notification_manager()
         self._apply_settings()
@@ -395,6 +409,81 @@ class CyberDefenseApp(QMainWindow):
         self._start_monitoring()
         self._start_optional_services()
         self._start_status_timer()
+
+    def _build_ui(self):
+        """Construct main window: stat cards + tab widget."""
+        central = QWidget()
+        main_layout = QVBoxLayout(central)
+        main_layout.setSpacing(14)
+
+        # Top statistics row
+        stats_row = QHBoxLayout()
+        stats_row.setSpacing(12)
+
+        # Protection card
+        prot_frame = QFrame()
+        prot_frame.setObjectName("StatCard")
+        prot_layout = QVBoxLayout(prot_frame)
+        prot_title = QLabel("Protection")
+        prot_title.setObjectName("StatTitle")
+        prot_layout.addWidget(prot_title)
+        self.lbl_protection = QLabel("ON" if not getattr(self, "_paused", False) else "PAUSED")
+        self.lbl_protection.setObjectName("ProtectionValue")
+        prot_layout.addWidget(self.lbl_protection)
+        prot_layout.addStretch()
+        stats_row.addWidget(prot_frame)
+
+        # Threats card
+        t_frame = QFrame()
+        t_frame.setObjectName("StatCard")
+        t_layout = QVBoxLayout(t_frame)
+        t_title = QLabel("Threats")
+        t_title.setObjectName("StatTitle")
+        t_layout.addWidget(t_title)
+        self.lbl_threats = QLabel(str(self._stats.get("threats", 0)))
+        self.lbl_threats.setObjectName("StatValue")
+        t_layout.addWidget(self.lbl_threats)
+        t_layout.addStretch()
+        stats_row.addWidget(t_frame)
+
+        # Trackers card
+        tr_frame = QFrame()
+        tr_frame.setObjectName("StatCard")
+        tr_layout = QVBoxLayout(tr_frame)
+        tr_title = QLabel("Trackers")
+        tr_title.setObjectName("StatTitle")
+        tr_layout.addWidget(tr_title)
+        self.lbl_trackers = QLabel(str(self._stats.get("trackers", 0)))
+        self.lbl_trackers.setObjectName("StatValue")
+        tr_layout.addWidget(self.lbl_trackers)
+        tr_layout.addStretch()
+        stats_row.addWidget(tr_frame)
+
+        # Phishing card
+        ph_frame = QFrame()
+        ph_frame.setObjectName("StatCard")
+        ph_layout = QVBoxLayout(ph_frame)
+        ph_title = QLabel("Phishing")
+        ph_title.setObjectName("StatTitle")
+        ph_layout.addWidget(ph_title)
+        self.lbl_phishing = QLabel(str(self._stats.get("phishing", 0)))
+        self.lbl_phishing.setObjectName("StatValue")
+        ph_layout.addWidget(self.lbl_phishing)
+        ph_layout.addStretch()
+        stats_row.addWidget(ph_frame)
+
+        stats_row.addStretch()
+        main_layout.addLayout(stats_row)
+
+        # Tabs
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self._dashboard_tab(), "Dashboard")
+        self.tabs.addTab(self._threats_tab(), "Threats")
+        self.tabs.addTab(self._vpn_tab(), "VPN")
+        self.tabs.addTab(self._settings_tab(), "Settings")
+        main_layout.addWidget(self.tabs)
+
+        self.setCentralWidget(central)
 
     def _create_stat_card(self, icon: str, title: str, gradient: str, glow: str) -> QWidget:
         """Create a modern stat card with gradient background."""
@@ -411,7 +500,7 @@ class CyberDefenseApp(QMainWindow):
         
         card_layout = QVBoxLayout(card)
         card_layout.setSpacing(12)
-        
+
         # Icon and title row
         header_layout = QHBoxLayout()
         
@@ -440,172 +529,43 @@ class CyberDefenseApp(QMainWindow):
         card_layout.addStretch()
         
         return card
-    
-    def _create_stat_number(self, value: str, color: str) -> QLabel:
-        """Create a stat number label."""
-        label = QLabel(value)
-        label.setStyleSheet(f"""
-            font-size: 42px;
-            font-weight: bold;
-            color: {color};
-            background: transparent;
-        """)
-        return label
-    
-    def _build_ui(self):
-        central = QWidget()
-        self.setCentralWidget(central)
-        layout = QVBoxLayout(central)
-        layout.setSpacing(16)
-        layout.setContentsMargins(24, 24, 24, 24)
 
-        # Top bar (clean header)
-        top_bar = QWidget()
-        top_bar.setStyleSheet("""
-            background-color: rgba(15, 23, 42, 0.85);
-            border-radius: 14px;
-            padding: 18px 18px;
-            border: 1px solid rgba(148, 163, 184, 0.18);
-        """)
-        top_layout = QHBoxLayout(top_bar)
-        
-        # Left side - Title and subtitle
-        title_container = QWidget()
-        title_container.setStyleSheet("background: transparent;")
-        title_layout = QVBoxLayout(title_container)
-        title_layout.setSpacing(4)
-        title_layout.setContentsMargins(0, 0, 0, 0)
-        
-        header = QLabel("🛡️ Cyber Defense")
-        header.setStyleSheet("""
-            font-size: 28px;
-            font-weight: bold;
-            color: #ffffff;
-            background: transparent;
-            letter-spacing: 0.5px;
-        """)
-        title_layout.addWidget(header)
-        
-        subheader = QLabel("Real-time protection · Phishing · Trackers · File monitoring · VPN")
-        subheader.setStyleSheet("""
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.9);
-            background: transparent;
-        """)
-        title_layout.addWidget(subheader)
-        
-        version_lbl = QLabel(f"v{APP_VERSION}")
-        version_lbl.setStyleSheet("""
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.7);
-            background: transparent;
-        """)
-        title_layout.addWidget(version_lbl)
-        
-        top_layout.addWidget(title_container)
-        top_layout.addStretch()
-        
-        # Right side - Status badge
-        status_badge = QWidget()
-        status_badge.setStyleSheet("""
-            background-color: rgba(74, 222, 128, 0.2);
-            border: 1px solid rgba(74, 222, 128, 0.6);
-            border-radius: 10px;
-            padding: 10px 18px;
-        """)
-        status_badge_layout = QHBoxLayout(status_badge)
-        status_badge_layout.setSpacing(8)
-        
-        status_icon = QLabel("✓")
-        status_icon.setStyleSheet("""
-            font-size: 18px;
-            font-weight: bold;
-            color: #4ade80;
-            background: transparent;
-        """)
-        status_badge_layout.addWidget(status_icon)
-        
-        self.status_label = QLabel("ACTIVE")
-        self.status_label.setStyleSheet("""
-            font-size: 13px; 
-            color: #4ade80; 
-            font-weight: 700;
-            background: transparent;
-            letter-spacing: 1px;
-        """)
-        status_badge_layout.addWidget(self.status_label)
-        
-        top_layout.addWidget(status_badge)
-        
-        layout.addWidget(top_bar)
-
-        # Stats cards (clean, non-gradient)
-        stats_container = QWidget()
-        stats_layout = QHBoxLayout(stats_container)
-        stats_layout.setSpacing(16)
-        stats_layout.setContentsMargins(0, 0, 0, 0)
-
-        def make_stat_card(title: str, value_widget: QWidget, hint: str = "") -> QFrame:
-            card = QFrame()
-            card.setObjectName("StatCard")
-            card_l = QVBoxLayout(card)
-            card_l.setContentsMargins(16, 14, 16, 14)
-            card_l.setSpacing(6)
-            t = QLabel(title)
-            t.setObjectName("StatTitle")
-            card_l.addWidget(t)
-            card_l.addWidget(value_widget)
-            if hint:
-                h = QLabel(hint)
-                h.setObjectName("StatHint")
-                h.setWordWrap(True)
-                card_l.addWidget(h)
-            card_l.addStretch()
-            return card
-
-        def make_big_number() -> QLabel:
-            lbl = QLabel("0")
-            lbl.setObjectName("StatValue")
-            return lbl
-
-        self.lbl_threats = make_big_number()
-        self.lbl_trackers = make_big_number()
-        self.lbl_phishing = make_big_number()
-        self.lbl_protection = QLabel("ON")
-        self.lbl_protection.setObjectName("ProtectionValue")
-
-        stats_layout.addWidget(make_stat_card("Threats blocked", self.lbl_threats, "All-time (this session)"))
-        stats_layout.addWidget(make_stat_card("Trackers flagged", self.lbl_trackers, "Low severity"))
-        stats_layout.addWidget(make_stat_card("Phishing blocked", self.lbl_phishing, "High risk URLs"))
-        stats_layout.addWidget(make_stat_card("Protection", self.lbl_protection, "Real-time + clipboard"))
-
-        layout.addWidget(stats_container)
-
-        # Tabs: Dashboard, Threats, VPN, Settings
-        self.tabs = QTabWidget()
-        self.tabs.setDocumentMode(True)
-        self.tabs.addTab(self._dashboard_tab(), "Dashboard")
-        self.tabs.addTab(self._threats_tab(), "Threats")
-        self.tabs.addTab(self._vpn_tab(), "VPN")
-        self.tabs.addTab(self._settings_tab(), "Settings")
-        layout.addWidget(self.tabs)
-
-        # Buttons
-        btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(12)
-        self.btn_pause = QPushButton("⏸ Pause")
-        self.btn_pause.setMinimumWidth(120)
-        self.btn_pause.clicked.connect(self._toggle_pause)
-        self.btn_settings = QPushButton("Settings")
-        self.btn_settings.setMinimumWidth(120)
-        self.btn_settings.clicked.connect(lambda: self.tabs.setCurrentIndex(3))
-        self.btn_close = QPushButton("Close")
-        self.btn_close.setMinimumWidth(100)
-        self.btn_close.clicked.connect(self.close)
-        for b in (self.btn_pause, self.btn_settings, self.btn_close):
-            btn_layout.addWidget(b)
-        btn_layout.addStretch()
-        layout.addLayout(btn_layout)
+    def _build_ui_fallback(self):
+        """Lightweight fallback UI if the primary `_build_ui` is missing or fails.
+        This ensures frozen binaries built from older sources still show a usable window.
+        """
+        try:
+            central = QWidget()
+            layout = QVBoxLayout(central)
+            hdr = QLabel("Cyber Defense")
+            hdr.setObjectName("SectionHeader")
+            layout.addWidget(hdr)
+            self.tabs = QTabWidget()
+            # Attempt to add tabs if the methods exist
+            try:
+                self.tabs.addTab(self._dashboard_tab(), "Dashboard")
+            except Exception:
+                self.tabs.addTab(QWidget(), "Dashboard")
+            try:
+                self.tabs.addTab(self._threats_tab(), "Threats")
+            except Exception:
+                self.tabs.addTab(QWidget(), "Threats")
+            try:
+                self.tabs.addTab(self._vpn_tab(), "VPN")
+            except Exception:
+                self.tabs.addTab(QWidget(), "VPN")
+            try:
+                self.tabs.addTab(self._settings_tab(), "Settings")
+            except Exception:
+                self.tabs.addTab(QWidget(), "Settings")
+            layout.addWidget(self.tabs)
+            self.setCentralWidget(central)
+        except Exception:
+            # As a last resort, create a minimal empty window
+            try:
+                self.setCentralWidget(QWidget())
+            except Exception:
+                pass
 
     def _dashboard_tab(self) -> QWidget:
         w = QWidget()
@@ -626,15 +586,19 @@ class CyberDefenseApp(QMainWindow):
         layout.addWidget(quick_hl)
         btn_row = QHBoxLayout()
         self.btn_quick_scan = QPushButton("Quick Scan (Downloads)")
+        self.btn_quick_scan.setObjectName("SuccessButton")
         self.btn_quick_scan.setToolTip("Scan Downloads folder in background")
         self.btn_quick_scan.clicked.connect(self._quick_scan_clicked)
         self.btn_full_scan = QPushButton("Full Scan")
+        self.btn_full_scan.setObjectName("DangerButton")
         self.btn_full_scan.setToolTip("Scan user folders (may take a while)")
         self.btn_full_scan.clicked.connect(self._full_scan_clicked)
         self.btn_vpn_toggle = QPushButton("VPN: Connect")
+        self.btn_vpn_toggle.setObjectName("DefaultButton")
         self.btn_vpn_toggle.setToolTip("Connect or disconnect VPN")
         self.btn_vpn_toggle.clicked.connect(self._dashboard_vpn_toggle)
         self.btn_realtime_toggle = QPushButton("Real-time: On")
+        self.btn_realtime_toggle.setObjectName("DefaultButton")
         self.btn_realtime_toggle.setToolTip("Toggle real-time file monitoring")
         self.btn_realtime_toggle.clicked.connect(self._dashboard_realtime_toggle)
         for b in (self.btn_quick_scan, self.btn_full_scan, self.btn_vpn_toggle, self.btn_realtime_toggle):
@@ -650,6 +614,7 @@ class CyberDefenseApp(QMainWindow):
         self.url_input.setPlaceholderText("Paste URL to scan")
         fl.addRow("URL:", self.url_input)
         scan_btn = QPushButton("Scan URL")
+        scan_btn.setObjectName("SuccessButton")
         scan_btn.clicked.connect(self._scan_url_clicked)
         fl.addRow("", scan_btn)
         self.scan_result = QPlainTextEdit()
@@ -700,13 +665,27 @@ class CyberDefenseApp(QMainWindow):
             # Skip if file hash matches whitelisted app hashes
             if path.endswith((".exe", ".dll")):
                 try:
-                    with open(path, "rb") as f:
-                        file_hash = hashlib.sha256(f.read()).hexdigest()
-                        if file_hash in _APP_HASHES:
+                    from utils import safe_hash_file
+                    file_hash = safe_hash_file(path, max_bytes=10 * 1024 * 1024)
+                    if file_hash and file_hash in _APP_HASHES:
+                        logger.info(f"Skipping self-detection by hash in scan: {path}")
+                        return
+                except Exception:
+                    try:
+                        from utils import safe_hash_file
+                        file_hash = safe_hash_file(path, max_bytes=10 * 1024 * 1024)
+                        if file_hash and file_hash in _APP_HASHES:
                             logger.info(f"Skipping self-detection by hash in scan: {path}")
                             return
-                except Exception:
-                    pass
+                    except Exception:
+                        try:
+                            with open(path, "rb") as f:
+                                file_hash = hashlib.sha256(f.read()).hexdigest()
+                                if file_hash in _APP_HASHES:
+                                    logger.info(f"Skipping self-detection by hash in scan: {path}")
+                                    return
+                        except Exception:
+                            pass
         except Exception as e:
             logger.debug(f"Error checking self-exclusion in scan: {e}")
         
@@ -721,8 +700,7 @@ class CyberDefenseApp(QMainWindow):
     def _dashboard_vpn_toggle(self):
         if getattr(self, "_vpn_client", None):
             try:
-                from vpn_client import is_vpn_connected
-                if is_vpn_connected():
+                if self._vpn_client.is_connected():
                     self._vpn_disconnect()
                 else:
                     self._vpn_connect()
@@ -730,7 +708,8 @@ class CyberDefenseApp(QMainWindow):
                 self._vpn_connect()
         else:
             self.tabs.setCurrentIndex(3)
-            self._notif_mgr.notify("Cyber Defense", "Configure VPN in Settings first.", "vpn", "info")
+            if hasattr(self, "_notif_mgr"):
+                self._notif_mgr.notify("Cyber Defense", "Enable VPN in Settings and choose provider (e.g. AdGuard DNS).", "vpn", "info")
 
     def _dashboard_realtime_toggle(self):
         self.settings["enable_realtime_monitor"] = not self.settings.get("enable_realtime_monitor", False)
@@ -768,12 +747,19 @@ class CyberDefenseApp(QMainWindow):
             header.setSectionResizeMode(5, header.ResizeToContents)  # action
         except Exception:
             pass
-        self.threat_table.setMinimumHeight(320)
+        # Use compact fixed row heights to avoid large empty gaps when few rows present
+        try:
+            self.threat_table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
+            self.threat_table.verticalHeader().setDefaultSectionSize(28)
+        except Exception:
+            pass
+        self.threat_table.setMinimumHeight(240)
         layout.addWidget(self.threat_table)
 
         btn_row = QHBoxLayout()
         btn_row.addStretch()
         clear_btn = QPushButton("Clear log")
+        clear_btn.setObjectName("WarningButton")
         clear_btn.setMaximumWidth(140)
         clear_btn.clicked.connect(self._clear_threat_log)
         btn_row.addWidget(clear_btn)
@@ -783,27 +769,74 @@ class CyberDefenseApp(QMainWindow):
     def _vpn_tab(self) -> QWidget:
         w = QWidget()
         layout = QVBoxLayout(w)
-        layout.addWidget(QLabel("VPN status"))
+        layout.setSpacing(12)
+        # VPN menu header
+        vpn_header = QLabel("🔒 VPN & DNS Protection")
+        vpn_header.setStyleSheet("font-size: 16px; font-weight: 700; color: #e2e8f0;")
+        layout.addWidget(vpn_header)
+        layout.addWidget(QLabel("Status"))
         self.lbl_vpn_status = QLabel("Checking...")
         self.lbl_vpn_status.setStyleSheet("font-size: 14px; font-weight: 600;")
         layout.addWidget(self.lbl_vpn_status)
         self.lbl_vpn_killswitch = QLabel("")
         layout.addWidget(self.lbl_vpn_killswitch)
+        layout.addWidget(QLabel("Provider:"))
+        self.lbl_vpn_provider = QLabel("")
+        self.lbl_vpn_provider.setStyleSheet("color: #94a3b8;")
+        layout.addWidget(self.lbl_vpn_provider)
+        # Config picker (WireGuard) - dropdown of available configs
+        config_row = QHBoxLayout()
+        config_row.addWidget(QLabel("Config:"))
+        self.vpn_config_combo = QComboBox()
+        self.vpn_config_combo.setMinimumWidth(220)
+        self.vpn_config_combo.setToolTip("Select WireGuard config or enter path in Settings")
+        self._populate_vpn_config_combo()
+        self.vpn_config_combo.currentIndexChanged.connect(self._on_vpn_config_selected)
+        config_row.addWidget(self.vpn_config_combo)
+        config_row.addStretch()
+        layout.addLayout(config_row)
+        # Connect/Disconnect buttons
         btn_row = QHBoxLayout()
         self.btn_vpn_connect = QPushButton("Connect")
+        self.btn_vpn_connect.setObjectName("SuccessButton")
         self.btn_vpn_connect.clicked.connect(self._vpn_connect)
         self.btn_vpn_disconnect = QPushButton("Disconnect")
+        self.btn_vpn_disconnect.setObjectName("WarningButton")
         self.btn_vpn_disconnect.clicked.connect(self._vpn_disconnect)
         btn_row.addWidget(self.btn_vpn_connect)
         btn_row.addWidget(self.btn_vpn_disconnect)
         btn_row.addStretch()
         layout.addLayout(btn_row)
-        layout.addWidget(QLabel("Config path (from Settings):"))
+        layout.addWidget(QLabel("Config path (Settings):"))
         self.lbl_vpn_config = QLabel("")
         self.lbl_vpn_config.setWordWrap(True)
+        self.lbl_vpn_config.setStyleSheet("color: #64748b; font-size: 11px;")
         layout.addWidget(self.lbl_vpn_config)
+        layout.addWidget(QLabel("Tip: Enable VPN in Settings and choose provider. AdGuard DNS needs no config."))
         layout.addStretch()
         return w
+
+    def _populate_vpn_config_combo(self):
+        """Populate VPN config dropdown with WireGuard configs from default folder."""
+        from vpn_client import get_available_wireguard_configs
+        self.vpn_config_combo.blockSignals(True)
+        self.vpn_config_combo.clear()
+        self.vpn_config_combo.addItem("(Select or enter path in Settings)", "")
+        configs = get_available_wireguard_configs()
+        for name, path in configs:
+            self.vpn_config_combo.addItem(name, path)
+        self.vpn_config_combo.blockSignals(False)
+
+    def _on_vpn_config_selected(self):
+        """When user selects a config from dropdown, save to settings and update VPN client."""
+        path = self.vpn_config_combo.currentData()
+        if path:
+            if hasattr(self, "vpn_config_edit"):
+                self.vpn_config_edit.setText(path)
+            self.settings["vpn_config_path"] = path
+            save_settings(self.settings)
+            if getattr(self, "_vpn_client", None) and self.settings.get("vpn_provider") != "adguard":
+                self._vpn_client.set_config(path)
 
     def _settings_tab(self) -> QWidget:
         w = QWidget()
@@ -903,8 +936,13 @@ class CyberDefenseApp(QMainWindow):
         sys_grp = QGroupBox("System Security Check")
         sys_layout = QVBoxLayout(sys_grp)
         sys_btn = QPushButton("Run system security check")
+        sys_btn.setObjectName("DefaultButton")
         sys_btn.clicked.connect(self._run_system_scan)
         sys_layout.addWidget(sys_btn)
+        clean_btn = QPushButton("Run system cleaner (free space & temp)")
+        clean_btn.setObjectName("WarningButton")
+        clean_btn.clicked.connect(self._ask_run_system_cleaner)
+        sys_layout.addWidget(clean_btn)
         self.sys_result = QPlainTextEdit()
         self.sys_result.setReadOnly(True)
         self.sys_result.setMaximumHeight(120)
@@ -912,6 +950,7 @@ class CyberDefenseApp(QMainWindow):
         layout.addWidget(sys_grp)
 
         save_btn = QPushButton("Save settings")
+        save_btn.setObjectName("SuccessButton")
         save_btn.setToolTip("Apply and save your preferences.")
         save_btn.clicked.connect(self._save_settings_clicked)
         layout.addWidget(save_btn)
@@ -942,6 +981,8 @@ class CyberDefenseApp(QMainWindow):
         # Optional uninstaller entry – launches uninstall.py / uninstall.bat if present.
         uninstall_a = menu.addAction("Uninstall Cyber Defense…")
         uninstall_a.triggered.connect(self._launch_uninstaller)
+        clean_a = menu.addAction("Run system cleaner")
+        clean_a.triggered.connect(self._ask_run_system_cleaner)
         menu.addSeparator()
         exit_a = menu.addAction("Quit")
         exit_a.triggered.connect(self._quit)
@@ -1051,6 +1092,56 @@ class CyberDefenseApp(QMainWindow):
         save_settings(self.settings)
         save_threat_log(self.threat_log)
         QApplication.quit()
+
+    def _launch_uninstaller(self):
+        """Launch the bundled uninstaller (`uninstall.bat` or `uninstall.py`) if present."""
+        try:
+            from pathlib import Path
+            import subprocess
+            import sys
+            from PyQt5.QtWidgets import QMessageBox
+
+            app_root = Path(getattr(sys, "frozen", False) and sys.executable or __file__).resolve().parent
+            bat = app_root / "uninstall.bat"
+            py = app_root / "uninstall.py"
+
+            if not bat.exists() and not py.exists():
+                QMessageBox.information(self, "Uninstaller not found", "No uninstaller was found in the application folder.")
+                return
+
+            reply = QMessageBox.question(
+                self,
+                "Uninstall Cyber Defense",
+                "This will run the uninstaller and attempt to remove application files. Continue?",
+                QMessageBox.Yes | QMessageBox.No,
+            )
+            if reply != QMessageBox.Yes:
+                return
+
+            # Prefer batch on Windows to get a visible console; otherwise run the Python script.
+            if bat.exists():
+                if sys.platform == "win32":
+                    creationflags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
+                else:
+                    creationflags = 0
+                subprocess.Popen([str(bat)], shell=True, creationflags=creationflags)
+            else:
+                # Run the Python uninstaller in a new console so the user can see progress.
+                exe = sys.executable or "python"
+                if sys.platform == "win32":
+                    creationflags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
+                else:
+                    creationflags = 0
+                subprocess.Popen([exe, str(py)], creationflags=creationflags)
+
+            QMessageBox.information(self, "Uninstaller launched", "Uninstaller started. The app will now exit.")
+            # Exit the application to allow the uninstaller to remove files.
+            self._quit()
+        except Exception as e:
+            try:
+                QMessageBox.critical(self, "Uninstall failed", f"Failed to launch uninstaller: {e}")
+            except Exception:
+                pass
 
     def closeEvent(self, event):
         if self.tray.isVisible():
@@ -1170,15 +1261,19 @@ class CyberDefenseApp(QMainWindow):
             enable_clipboard=self.settings["enable_clipboard"],
             enable_tracker_check=self.settings["enable_tracker_check"],
         )
-        if self.settings.get("enable_vpn", False) and self.settings.get("vpn_config_path", "").strip():
+        enable_vpn = self.settings.get("enable_vpn", False)
+        provider = self.settings.get("vpn_provider", "none").lower()
+        config_path = (self.settings.get("vpn_config_path") or "").strip()
+        vpn_ready = enable_vpn and (provider == "adguard" or config_path)
+        if vpn_ready:
             try:
                 from vpn_client import VPNClient
                 if getattr(self, "_vpn_client", None):
                     self._vpn_client.stop()
-                config_path = self.settings["vpn_config_path"].strip()
                 kill_switch = bool(self.settings.get("vpn_kill_switch", False))
                 self._vpn_client = VPNClient(
                     config_path=config_path,
+                    provider=provider if provider != "none" else "wireguard",
                     kill_switch=kill_switch,
                     on_vpn_down=self._on_vpn_down,
                 )
@@ -1192,6 +1287,9 @@ class CyberDefenseApp(QMainWindow):
                 except Exception:
                     pass
                 self._vpn_client = None
+        self._refresh_vpn_status()
+        if hasattr(self, "vpn_config_combo"):
+            self._populate_vpn_config_combo()
         QMessageBox.information(self, "Settings", "Settings saved.")
 
     def _set_windows_autostart(self, enabled):
@@ -1273,13 +1371,17 @@ class CyberDefenseApp(QMainWindow):
         else:
             self._behavioral_monitor = None
 
-        if self.settings.get("enable_vpn", False) and self.settings.get("vpn_config_path", "").strip():
+        enable_vpn = self.settings.get("enable_vpn", False)
+        provider = self.settings.get("vpn_provider", "none").lower()
+        config_path = (self.settings.get("vpn_config_path") or "").strip()
+        vpn_ready = enable_vpn and (provider == "adguard" or config_path)
+        if vpn_ready:
             try:
                 from vpn_client import VPNClient
-                config_path = self.settings["vpn_config_path"].strip()
                 kill_switch = bool(self.settings.get("vpn_kill_switch", False))
                 self._vpn_client = VPNClient(
                     config_path=config_path,
+                    provider=provider if provider != "none" else "wireguard",
                     kill_switch=kill_switch,
                     on_vpn_down=self._on_vpn_down,
                 )
@@ -1296,8 +1398,8 @@ class CyberDefenseApp(QMainWindow):
             self.tray_realtime_a.setText(f"Real-time Protection: {'On' if self.settings.get('enable_realtime_monitor') else 'Off'}")
             if getattr(self, "_vpn_client", None):
                 try:
-                    from vpn_client import is_vpn_connected
-                    self.btn_vpn_toggle.setText("VPN: Disconnect" if is_vpn_connected() else "VPN: Connect")
+                    connected = self._vpn_client.is_connected()
+                    self.btn_vpn_toggle.setText("VPN: Disconnect" if connected else "VPN: Connect")
                 except Exception:
                     self.btn_vpn_toggle.setText("VPN: Connect")
             else:
@@ -1503,40 +1605,8 @@ class CyberDefenseApp(QMainWindow):
         self._paused = not self._paused
         if self._paused:
             self._service.stop()
-            self.status_label.setText("PAUSED")
-            self.status_label.setStyleSheet("""
-                font-size: 13px; 
-                color: #fbbf24; 
-                font-weight: 700;
-                background: transparent;
-                letter-spacing: 1px;
-            """)
-            # Update status badge parent background
-            self.status_label.parent().setStyleSheet("""
-                background-color: rgba(251, 191, 36, 0.15);
-                border: 2px solid #fbbf24;
-                border-radius: 12px;
-                padding: 12px 20px;
-            """)
-            self.btn_pause.setText("▶ Resume")
         else:
             self._service.start()
-            self.status_label.setText("ACTIVE")
-            self.status_label.setStyleSheet("""
-                font-size: 13px; 
-                color: #4ade80; 
-                font-weight: 700;
-                background: transparent;
-                letter-spacing: 1px;
-            """)
-            # Update status badge parent background
-            self.status_label.parent().setStyleSheet("""
-                background-color: rgba(74, 222, 128, 0.15);
-                border: 2px solid #4ade80;
-                border-radius: 12px;
-                padding: 12px 20px;
-            """)
-            self.btn_pause.setText("⏸ Pause")
         if hasattr(self, "lbl_protection"):
             self.lbl_protection.setText("PAUSED" if self._paused else "ON")
         self._update_tray_icon()
@@ -1646,6 +1716,12 @@ class CyberDefenseApp(QMainWindow):
             t.setItem(row, 3, loc_item)
             t.setItem(row, 4, msg_item)
             t.setItem(row, 5, action_item)
+            # Enforce compact row height to avoid large gaps
+            try:
+                default_h = t.verticalHeader().defaultSectionSize() or 28
+                t.setRowHeight(row, default_h)
+            except Exception:
+                pass
 
     def _update_dashboard(self):
         lines = [
@@ -1684,14 +1760,17 @@ class CyberDefenseApp(QMainWindow):
             menu = QMenu(self)
             act_open_folder = menu.addAction("Open folder")
             act_quarantine = menu.addAction("Quarantine (copy)")
+            act_delete_file = menu.addAction("Delete file (permanently)")
             act_restore = menu.addAction("Restore from quarantine")
             act_ignore = menu.addAction("Ignore (mark)")
             menu.addSeparator()
             act_delete_q = menu.addAction("Delete from quarantine")
+            act_run_cleaner = menu.addAction("Run system cleaner")
 
             # Enable/disable based on data
             act_open_folder.setEnabled(bool(location))
             act_quarantine.setEnabled(bool(location))
+            act_delete_file.setEnabled(bool(location))
             act_restore.setEnabled(bool(q_path))
             act_delete_q.setEnabled(bool(q_path))
 
@@ -1703,10 +1782,14 @@ class CyberDefenseApp(QMainWindow):
                 self._open_location_folder(location)
             elif chosen == act_quarantine:
                 self._quarantine_location(row, location, entry)
+            elif chosen == act_delete_file:
+                self._delete_threat_file(row, location, entry)
             elif chosen == act_restore:
                 self._restore_quarantined(row, q_path, entry)
             elif chosen == act_delete_q:
                 self._delete_quarantined(row, q_path, entry)
+            elif chosen == act_run_cleaner:
+                self._ask_run_system_cleaner()
             elif chosen == act_ignore:
                 self._mark_threat_action(row, entry, "Ignored")
         except Exception:
@@ -1722,6 +1805,37 @@ class CyberDefenseApp(QMainWindow):
             else:
                 import subprocess
                 subprocess.run(["xdg-open", str(folder)], timeout=3)
+        except Exception:
+            pass
+
+    def _delete_threat_file(self, row: int, location: str, entry: dict) -> None:
+        """Permanently delete the threat file on disk (asks for confirmation)."""
+        try:
+            if not location:
+                return
+            p = Path(location)
+            if not p.exists():
+                QMessageBox.information(self, "Delete file", "File not found on disk.")
+                return
+            reply = QMessageBox.question(self, "Delete file",
+                                         f"Permanently delete '{p.name}'? This cannot be undone.",
+                                         QMessageBox.Yes | QMessageBox.No)
+            if reply != QMessageBox.Yes:
+                return
+            try:
+                # Attempt secure delete if available: overwrite simple then delete
+                try:
+                    with open(p, "r+b") as fh:
+                        sz = fh.seek(0, os.SEEK_END)
+                        fh.seek(0)
+                        fh.write(b"\x00" * max(1, min(4096, sz)))
+                except Exception:
+                    pass
+                p.unlink()
+                self._mark_threat_action(row, entry, "Deleted")
+                QMessageBox.information(self, "Delete", "File deleted.")
+            except Exception as e:
+                QMessageBox.warning(self, "Delete", f"Failed to delete file: {e}")
         except Exception:
             pass
 
@@ -1811,13 +1925,69 @@ class CyberDefenseApp(QMainWindow):
             lines.append(f"💡 {msg}")
         self.sys_result.setPlainText("\n".join(lines))
 
+    def _ask_run_system_cleaner(self):
+        try:
+            reply = QMessageBox.question(
+                self,
+                "Run System Cleaner",
+                "This will run a system cleanup (delete temp files, clear SoftwareDistribution downloads, empty Recycle Bin). Continue?",
+                QMessageBox.Yes | QMessageBox.No,
+            )
+            if reply != QMessageBox.Yes:
+                return
+            self._run_system_cleaner()
+        except Exception:
+            pass
+
+    def _run_system_cleaner(self):
+        """Locate and launch the bundled `tools\system_cleaner.bat` with elevation on Windows.
+        If not on Windows, attempt to perform simple temp cleanup where possible.
+        """
+        try:
+            script = _APP_ROOT / "tools" / "system_cleaner.bat"
+            if sys.platform == "win32" and script.exists():
+                try:
+                    # Use ShellExecute to elevate
+                    import ctypes
+                    params = str(script)
+                    ctypes.windll.shell32.ShellExecuteW(None, "runas", str(script), None, None, 1)
+                    QMessageBox.information(self, "Cleaner", "System cleaner launched (may require admin).")
+                    return
+                except Exception as e:
+                    QMessageBox.warning(self, "Cleaner", f"Failed to launch cleaner: {e}")
+                    return
+            # Non-windows fallback: attempt to remove /tmp and user temp
+            if script.exists() is False and sys.platform != "win32":
+                try:
+                    import shutil
+                    t1 = Path(os.environ.get('TMP', '/tmp'))
+                    if t1.exists():
+                        shutil.rmtree(str(t1), ignore_errors=True)
+                        t1.mkdir(parents=True, exist_ok=True)
+                    QMessageBox.information(self, "Cleaner", "Temporary folders cleaned (best-effort).")
+                    return
+                except Exception as e:
+                    QMessageBox.warning(self, "Cleaner", f"Failed to clean temp folders: {e}")
+                    return
+            QMessageBox.information(self, "Cleaner", "Cleaner script not found or unsupported platform.")
+        except Exception as e:
+            try:
+                QMessageBox.warning(self, "Cleaner", f"Cleaner failed: {e}")
+            except Exception:
+                pass
+
     def _refresh_vpn_status(self):
         try:
-            from vpn_client import is_vpn_connected
-            connected = is_vpn_connected()
+            from vpn_client import is_vpn_or_dns_connected
+            provider = self.settings.get("vpn_provider", "none").lower()
+            provider_names = {"adguard": "AdGuard DNS", "wireguard": "WireGuard", "openvpn": "OpenVPN",
+                             "mullvad": "Mullvad", "protonvpn": "ProtonVPN", "none": "None"}
+            connected = is_vpn_or_dns_connected(provider) if provider != "none" else False
             self.lbl_vpn_status.setText("Connected" if connected else "Disconnected")
             self.lbl_vpn_status.setStyleSheet("color: #22c55e;" if connected else "color: #94a3b8;")
-            cfg = self.settings.get("vpn_config_path", "") or "(not set)"
+            if hasattr(self, "lbl_vpn_provider"):
+                self.lbl_vpn_provider.setText(provider_names.get(provider, provider) + " (from Settings)")
+            cfg = self.settings.get("vpn_config_path", "") or "(not set)" if provider != "adguard" else "N/A - AdGuard uses system DNS"
             self.lbl_vpn_config.setText(cfg[:80] + "..." if len(cfg) > 80 else cfg)
             kill = "Kill-switch: On" if self.settings.get("vpn_kill_switch") else "Kill-switch: Off"
             self.lbl_vpn_killswitch.setText(kill)
@@ -1836,209 +2006,72 @@ def main():
     logger.info(f"Platform: {sys.platform}")
     logger.info(f"Python: {sys.version}")
     
+    # Enable high-DPI scaling and high-DPI pixmaps for crisp UI on modern displays
+    try:
+        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    except Exception:
+        pass
+
     app = QApplication(sys.argv)
     app.setApplicationName("Cyber Defense")
-    
-    # Apply modern dark theme to entire application  
     try:
-        app.setStyle("Fusion")
+        from PyQt5.QtGui import QFont
+        app.setFont(QFont("Segoe UI", 9))
+    except Exception:
+        pass
+
+    # Load and set application icon (prefer valid PNG; fallback to SVG rendering).
+    try:
+        png_icon = _APP_ROOT / "icons" / "cyberdefense_logo_256.png"
+        svg_icon = _APP_ROOT / "icons" / "cyberdefense_logo.svg"
+        loaded = False
+        if png_icon.exists():
+            try:
+                ic = QIcon(str(png_icon))
+                if not ic.isNull():
+                    app.setWindowIcon(ic)
+                    loaded = True
+            except Exception:
+                loaded = False
+        if (not loaded) and svg_icon.exists():
+            try:
+                # Render SVG to pixmap and use as icon (works when PNG is missing or corrupted)
+                from PyQt5.QtSvg import QSvgRenderer
+                renderer = QSvgRenderer(str(svg_icon))
+                pix = QPixmap(256, 256)
+                pix.fill(Qt.transparent)
+                painter = QPainter(pix)
+                renderer.render(painter)
+                painter.end()
+                app.setWindowIcon(QIcon(pix))
+            except Exception:
+                pass
+    except Exception:
+        pass
+    
+    # Try to load bundled QSS for a polished dark theme, fallback to inline
+    try:
+        qss_path = _APP_ROOT / "dark_theme.qss"
+        if qss_path.exists():
+            with open(qss_path, "r", encoding="utf-8") as f:
+                app.setStyleSheet(f.read())
+        else:
+            try:
+                app.setStyle("Fusion")
+            except Exception:
+                pass
+            app.setStyleSheet("""
+                * { font-family: 'Segoe UI Variable', 'Segoe UI', Arial, sans-serif; }
+                QMainWindow, QWidget { background-color: #0b0f14; color: #e5e7eb; }
+                QLabel { color: #e5e7eb; background-color: transparent; }
+            """)
     except Exception as e:
-        logger.warning(f"Could not set Fusion style: {e}")
-        # Continue anyway with default style
-    app.setStyleSheet("""
-        * { font-family: 'Segoe UI Variable', 'Segoe UI', Arial, sans-serif; }
-
-        /* Fluent-ish dark base */
-        QMainWindow, QWidget { background-color: #0b0f14; color: #e5e7eb; }
-        QLabel { color: #e5e7eb; background-color: transparent; }
-        QLabel#SectionHeader { font-size: 12pt; font-weight: 700; color: rgba(229,231,235,0.85); padding: 4px 2px; }
-
-        QFrame#StatCard {
-            background-color: rgba(15, 23, 42, 0.85);
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            border-radius: 14px;
-        }
-        QLabel#StatTitle { font-size: 9.5pt; font-weight: 600; color: rgba(148,163,184,0.9); }
-        QLabel#StatValue { font-size: 28pt; font-weight: 800; color: #e5e7eb; }
-        QLabel#ProtectionValue { font-size: 20pt; font-weight: 800; color: #a5b4fc; }
-        QLabel#StatHint { font-size: 8.5pt; color: rgba(148,163,184,0.75); }
-
-        /* Buttons */
-        QPushButton {
-            background-color: #111827;
-            color: #f9fafb;
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            border-radius: 10px;
-            padding: 10px 16px;
-            font-weight: 600;
-            font-size: 10.5pt;
-        }
-        QPushButton:hover { border-color: rgba(99, 102, 241, 0.65); background-color: #0f172a; }
-        QPushButton:pressed { background-color: #0b1220; }
-        QPushButton:disabled { color: rgba(229, 231, 235, 0.35); }
-
-        /* Inputs */
-        QLineEdit, QPlainTextEdit, QTextEdit {
-            background-color: #0f172a;
-            color: #e5e7eb;
-            border: 1px solid rgba(148, 163, 184, 0.20);
-            border-radius: 10px;
-            padding: 10px;
-            selection-background-color: rgba(99, 102, 241, 0.35);
-        }
-        QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus { border-color: #6366f1; }
-
-        /* Combo */
-        QComboBox {
-            background-color: #0f172a;
-            color: #e5e7eb;
-            border: 1px solid rgba(148, 163, 184, 0.20);
-            border-radius: 10px;
-            padding: 8px;
-            min-height: 28px;
-        }
-        QComboBox:hover { border-color: rgba(99, 102, 241, 0.65); }
-        QComboBox::drop-down {
-            border: none;
-            background-color: rgba(148, 163, 184, 0.10);
-            width: 28px;
-            border-top-right-radius: 10px;
-            border-bottom-right-radius: 10px;
-        }
-        QComboBox::down-arrow {
-            image: none;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top: 6px solid #e2e8f0;
-            margin-right: 8px;
-        }
-        QComboBox QAbstractItemView {
-            background-color: #0f172a;
-            color: #e5e7eb;
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            selection-background-color: rgba(99, 102, 241, 0.35);
-        }
-        QCheckBox { color: #e5e7eb; spacing: 10px; background-color: transparent; }
-        QCheckBox::indicator {
-            width: 18px; height: 18px;
-            border: 1px solid rgba(148, 163, 184, 0.25);
-            border-radius: 5px;
-            background-color: #0f172a;
-        }
-        QCheckBox::indicator:hover { border-color: #6366f1; }
-        QCheckBox::indicator:checked {
-            background-color: #6366f1;
-            border-color: #6366f1;
-            image: url(none);
-        }
-        QTabWidget::pane {
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            border-radius: 12px;
-            background-color: #0f172a;
-            top: -1px;
-        }
-        QTabBar::tab {
-            background-color: #0b0f14;
-            color: rgba(229, 231, 235, 0.65);
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            border-bottom: none;
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
-            padding: 10px 18px;
-            margin-right: 2px;
-            font-weight: 600;
-            min-width: 90px;
-        }
-        QTabBar::tab:selected {
-            background-color: #0f172a;
-            color: #a5b4fc;
-            border-bottom: 1px solid #0f172a;
-        }
-        QTabBar::tab:hover:!selected { background-color: #0f172a; color: #e5e7eb; }
-        QTableWidget {
-            background-color: #0f172a;
-            color: #e5e7eb;
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            border-radius: 12px;
-            gridline-color: rgba(148, 163, 184, 0.12);
-            alternate-background-color: #0b0f14;
-        }
-        QTableWidget::item {
-            padding: 8px;
-            border-bottom: 1px solid #2d3250;
-        }
-        QTableWidget::item:selected {
-            background-color: #424769;
-            color: #ffffff;
-        }
-        QTableWidget::item:hover { background-color: #334155; }
-        QHeaderView::section {
-            background-color: #0b0f14;
-            color: rgba(229, 231, 235, 0.65);
-            border: none;
-            padding: 10px 12px;
-            font-weight: 600;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
-        }
-        QHeaderView::section:hover { background-color: rgba(148, 163, 184, 0.08); }
-        QGroupBox {
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            border-radius: 12px;
-            margin-top: 14px;
-            padding: 16px 14px 14px 14px;
-            font-weight: 600;
-            color: #818cf8;
-            background-color: transparent;
-        }
-        QGroupBox::title {
-            subcontrol-origin: margin;
-            left: 14px;
-            padding: 0 8px;
-            background-color: #0b0f14;
-        }
-        QProgressBar {
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            border-radius: 10px;
-            text-align: center;
-            background: #0f172a;
-            color: rgba(229, 231, 235, 0.75);
-            height: 18px;
-        }
-        QProgressBar::chunk {
-            border-radius: 10px;
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 #6366f1, stop:1 #a5b4fc);
-        }
-        QScrollBar:vertical {
-            background-color: #1e293b;
-            width: 10px;
-            border-radius: 5px;
-        }
-        QScrollBar::handle:vertical {
-            background-color: #475569;
-            border-radius: 5px;
-            min-height: 28px;
-        }
-        QScrollBar::handle:vertical:hover { background-color: #64748b; }
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
-        QScrollBar:horizontal {
-            background-color: #1e293b;
-            height: 10px;
-            border-radius: 5px;
-        }
-        QScrollBar::handle:horizontal {
-            background-color: #475569;
-            border-radius: 5px;
-            min-width: 28px;
-        }
-        QScrollBar::handle:horizontal:hover { background-color: #64748b; }
-        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-            width: 0px;
-        }
-        QMessageBox { background-color: #0b0f14; }
-        QMessageBox QLabel { color: #e5e7eb; }
-        QMessageBox QPushButton { min-width: 80px; }
-    """)
+        logger.warning("Failed to load theme file: %s", e)
+        try:
+            app.setStyle("Fusion")
+        except Exception:
+            pass
     
     try:
         logger.info("Creating main window...")

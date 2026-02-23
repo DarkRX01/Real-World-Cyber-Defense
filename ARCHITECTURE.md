@@ -2,48 +2,142 @@
 
 ## System Overview
 
-Real-World Cyber Defense is a Chrome extension built with Manifest V3 that provides real-time threat detection and privacy protection through multi-layered scanning.
+Real-World Cyber Defense is a **desktop security application** for Windows and Linux (built with Python + PyQt5) that provides real-time threat detection, file monitoring, and privacy protection through multi-layered user-mode scanning.
+
+**Key Architectural Decision**: User-mode only (no kernel drivers). Event-driven file monitoring via watchdog; behavioral analysis via psutil; network monitoring via packet capture.
 
 ### Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     CHROME BROWSER                          │
-├─────────────────────────────────────────────────────────────┤
+┌──────────────────────────────────────────────────────────────┐
+│                 CYBER DEFENSE DESKTOP APP                    │
+│                      (Python + PyQt5)                        │
+├──────────────────────────────────────────────────────────────┤
 │                                                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │         BACKGROUND SERVICE WORKER                    │  │
-│  │  (background.js)                                     │  │
-│  │                                                      │  │
-│  │  ├─ URL Request Interceptor                         │  │
-│  │  ├─ Threat Scanner                                  │  │
-│  │  ├─ Tracker Detector                                │  │
-│  │  ├─ Download Monitor                                │  │
-│  │  └─ Threat Logger (Ephemeral)                       │  │
-│  └──────────────────────────────────────────────────────┘  │
-│            │              │              │                   │
-│            ▼              ▼              ▼                   │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐         │
-│  │    POPUP     │ │   OPTIONS    │ │ NOTIFICATION │         │
-│  │  (popup.js)  │ │(options.js)  │ │   SYSTEM     │         │
-│  └──────────────┘ └──────────────┘ └──────────────┘         │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │             MAIN GUI (PyQt5)                        │   │
+│  │  ├─ Dashboard (real-time stats)                    │   │
+│  │  ├─ Threat Log (detailed history)                  │   │
+│  │  ├─ Tools (manual URL scan, system scan)           │   │
+│  │  └─ Settings (feature toggles, sensitivity)        │   │
+│  └─────────────────────────────────────────────────────┘   │
+│            │              │              │                  │
+│            ▼              ▼              ▼                  │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐       │
+│  │   Tray Icon  │ │Notifications │ │ System Menu  │       │
+│  └──────────────┘ └──────────────┘ └──────────────┘       │
+│                                                             │
+├──────────────────────────────────────────────────────────────┤
+│                   BACKGROUND SERVICE                         │
+├──────────────────────────────────────────────────────────────┤
 │                                                              │
-└─────────────────────────────────────────────────────────────┘
-           │
-           │ HTTP/HTTPS Requests
-           │
-┌──────────────────────────────────────┐
-│   EXTERNAL APIs                      │
-├──────────────────────────────────────┤
-│ • Google Safe Browsing API v4        │
-│ • VirusTotal API v3 (Optional)       │
-│ • Blocklist Sources (Updates)        │
-└──────────────────────────────────────┘
+│  ┌──────────────────┐  ┌──────────────────┐               │
+│  │ Threat Engine    │  │ Real-Time Monitor│               │
+│  │ (detection./)    │  │ (watchdog)       │               │
+│  │                  │  │                  │               │
+│  │ ├─ Hash matching │  │ ├─ File creation │               │
+│  │ ├─ YARA rules    │  │ ├─ File modify   │               │
+│  │ ├─ PE heuristics │  │ └─ Honeypots     │               │
+│  │ ├─ Entropy       │  │                  │               │
+│  │ ├─ Ransomware    │  │ Event-driven ✓   │               │
+│  │ │  patterns      │  │ No polling       │               │
+│  │ └─ Phishing      │  │                  │               │
+│  └──────────────────┘  └──────────────────┘               │
+│          │                      │                          │
+│  ┌───────┴──────────┬───────────┴───────────┐             │
+│  │                  │                       │             │
+│  ▼                  ▼                       ▼             │
+│  ┌──────────────────────────────────────────────────┐    │
+│  │    Behavioral Analysis (psutil)                  │    │
+│  │  ├─ Process monitoring                          │    │
+│  │  ├─ CPU/memory anomaly detection (3-sigma)      │    │
+│  │  ├─ Parent-child process trees                  │    │
+│  │  └─ Mass-file-write detection                   │    │
+│  └──────────────────────────────────────────────────┘    │
+│  ┌──────────────────────────────────────────────────┐    │
+│  │    Network Monitoring                           │    │
+│  │  ├─ URL clipboard scanning                      │    │
+│  │  ├─ DNS/SSL certificate validation              │    │
+│  │  ├─ Phishing pattern matching                   │    │
+│  │  └─ VPN connection management                   │    │
+│  └──────────────────────────────────────────────────┘    │
+│  ┌──────────────────────────────────────────────────┐    │
+│  │    Quarantine & Update System                   │    │
+│  │  ├─ Threat quarantine (VSS support)             │    │
+│  │  ├─ Auto-update (YARA, ClamAV, URLhaus)        │    │
+│  │  └─ Signature management                        │    │
+│  └──────────────────────────────────────────────────┘    │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+              │                │                │
+              ▼                ▼                ▼
+  ┌──────────────────┐  ┌──────────────┐  ┌──────────────┐
+  │  File System     │  │  Clipboard   │  │  Network     │
+  │  (monitoring)    │  │  (monitoring)│  │  (scanning)  │
+  └──────────────────┘  └──────────────┘  └──────────────┘
 ```
+
+## Design Philosophy: User-Mode Only Architecture
+
+### Why No Kernel Driver?
+
+Cyber Defense operates entirely in **user-mode (ring 3)**, not kernel-mode (ring 0). Here's why:
+
+| Aspect | Kernel Driver | User-Mode (Chosen) |
+|--------|---------------|-------------------|
+| **Complexity** | Very High (WDK, compiler, build pipeline) | Moderate (Python, standard libraries) |
+| **Certification** | Required (Microsoft HLK, formal testing) | Not required |
+| **Signing** | EV cert + kernel-mode code signing | Standard code signing (optional) |
+| **Distribution** | Difficult (driver packages, updates) | Easy (ZIP, MSI, AppImage) |
+| **Maintenance** | High (Windows API changes, versioning) | Lower (Python ecosystem) |
+| **Crash Risk** | High (BSOD possible) | Low (process-level isolation) |
+| **What It Catches** | Kernel rootkits, SSDT hooks, ring-0 attacks | User-mode threats, file operations, process behavior |
+| **Real-time Speed** | Immediate (kernel level) | Event-driven via watchdog (~10ms latency) |
+
+**Decision**: Event-driven **watchdog** provides sufficient protection for 99% of real-world threats (phishing, ransomware, known malware) without kernel complexity.
+
+### Real-Time Monitoring Without a Driver
+
+**Instead of a kernel minifilter**, Cyber Defense uses:
+
+1. **watchdog library** (FileSystemWatcher on Windows, inotify on Linux)
+   - Event-driven, not polling
+   - ~10ms latency on file events
+   - Sufficient for ransomware/malware detection
+
+2. **psutil** for process monitoring
+   - Parent-child relationship tracking
+   - CPU/memory anomaly detection (3-sigma)
+   - Behavioral analysis without kernel hooks
+
+3. **Clipboard monitoring**
+   - Real-time URL scanning
+   - Phishing detection before click
+
+### What This Architecture Can Detect ✅
+
+- Ransomware file encryption patterns (mass writes)
+- Known malware (YARA + hashes)
+- Phishing URLs and lookalike domains
+- Suspicious process behavior (anomalous CPU/memory)
+- Process injection attempts (parent-child trees)
+- Packed/entropy-based executables
+
+### What This Architecture Cannot Detect ❌
+
+- Kernel rootkits (operate below user-mode)
+- SSDT/kernel hook modifications
+- Direct memory manipulation (from kernel mode)
+- Boot sector/MBR malware
+- Firmware-level attacks
+
+**Note**: For comprehensive protection, run Cyber Defense **alongside** Windows Defender (which has certified kernel drivers for kernel-mode threats).
+
+---
 
 ## Core Components
 
-### 1. Background Service Worker (`background.js`)
+### 1. Threat Engine (`threat_engine.py`)
 
 The main orchestrator of the extension. Runs continuously in the background.
 

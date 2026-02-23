@@ -70,7 +70,6 @@ _Removed in later versions: test-virus-specific detection is no longer included.
 **Docs & GitHub**
 - **SIGNING-SELF-DEFENSE.md** – EV cert, signtool, SmartScreen, NSSM/systemd.
 - **PRODUCTION-IMPROVEMENTS.md** – Summary of all production-grade additions.
-- **Minifilter scaffold** (`minifilter-rust/`) – Rust stub and README for a future Windows minifilter.
 - **GitHub** – Issue templates (bug, feature, question) and PR template updated for the desktop app.
 
 ### Changed

@@ -1,8 +1,8 @@
 # 🛡️ Cyber Defense – Real-World Security
 
-A **user-friendly** desktop app for threat detection and security monitoring on Windows (and Linux from source). Protects you from phishing, trackers, and suspicious downloads with a simple tray icon and clear notifications.
+**Desktop real-time threat scanner & privacy shield (Windows/Linux).** A user-friendly desktop app for threat detection and security monitoring. Protects you from phishing, trackers, and suspicious downloads with a simple tray icon and clear notifications.
 
-![Version](https://img.shields.io/badge/version-2.3.1-blue)
+![Version](https://img.shields.io/badge/version-3.0.0-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -57,7 +57,7 @@ A **user-friendly** desktop app for threat detection and security monitoring on 
 | 🛡 **Ransomware shield** | Honeypot files in key dirs; mass-encryption detection. |
 | 🔄 **Auto-updates** | Optional; YARA from GitHub + ClamAV, URLhaus, PhishTank every 2 hours. |
 | 🗂 **Quarantine** | Detected file threats can be moved to quarantine (restore later). |
-| 🔒 **VPN integration** | Optional WireGuard connect/disconnect from tray; kill-switch alert when VPN drops. |
+| 🔒 **VPN & DNS** | AdGuard DNS (no config), WireGuard config picker, connect/disconnect from tray; kill-switch when VPN drops. |
 | 🌙 **Tray-first** | Runs in the tray; Win10-style notifications; VPN Connect/Disconnect in menu. |
 | 🎨 **Dark UI** | Simple dashboard, threat log, tools, and settings. |
 
@@ -74,6 +74,9 @@ A **user-friendly** desktop app for threat detection and security monitoring on 
 | [CORE-DETECTION-OVERHAUL.md](CORE-DETECTION-OVERHAUL.md) | Core detection: real-time FS, signatures, PE heuristics, ransomware shield, VPN. |
 | [PRODUCTION-IMPROVEMENTS.md](PRODUCTION-IMPROVEMENTS.md) | Technical improvements (YARA, ML, real-time, quarantine, etc.). |
 | [SIGNING-SELF-DEFENSE.md](SIGNING-SELF-DEFENSE.md) | Code signing and running as a service. |
+| [ROADMAP.md](ROADMAP.md) | Prioritized roadmap: trust & safety, features, usability, community. |
+| [THREAT-MODEL.md](THREAT-MODEL.md) | What we can and cannot detect; confidence levels. |
+| [LIMITATIONS.md](LIMITATIONS.md) | Short summary of limitations; link to full threat model. |
 
 ---
 
@@ -108,7 +111,7 @@ Cyber Defense is built to be **actually useful** as an extra layer of protection
 - **Auto-updating blocklists** – Pulls YARA (GitHub), ClamAV, URLhaus, PhishTank so definitions stay current.
 - **VPN** – Optional WireGuard connect/disconnect from tray; kill-switch alerts when VPN drops (local-only; no telemetry).
 
-**Best setup:** Run Cyber Defense **together with** Windows Defender (or your main AV). Defender handles kernel-level and certified AV; Cyber Defense adds real-time file/URL/behavior monitoring and quarantine. See [PRODUCTION-IMPROVEMENTS.md](PRODUCTION-IMPROVEMENTS.md) for what’s under the hood and [SECURITY-ROADMAP.md](SECURITY-ROADMAP.md) for future kernel/driver options.
+**Best setup:** Run Cyber Defense **together with** Windows Defender (or your main AV). Defender handles certified antivirus + kernel-level protection; Cyber Defense adds real-time file/URL/behavior monitoring and quarantine from the application layer. See [PRODUCTION-IMPROVEMENTS.md](PRODUCTION-IMPROVEMENTS.md) for what's under the hood and [THREAT-MODEL.md](THREAT-MODEL.md) for honest limitations.
 
 ---
 
@@ -117,12 +120,11 @@ Cyber Defense is built to be **actually useful** as an extra layer of protection
 | Issue | What to try |
 |-------|-------------|
 | App doesn’t start | Extract the **entire** ZIP; run **Run Cyber Defense.bat** or **CyberDefense.exe** from that folder. |
-| SmartScreen warning | Click “More info” → “Run anyway”. |
-| Antivirus blocks it | Common for unsigned apps. Add an exception for the app folder or build from source. |
+| SmartScreen warning | We do **not** recommend bypassing SmartScreen. Prefer **building from source** or use a signed build when available. See [SMARTSCREEN-WARNING.md](SMARTSCREEN-WARNING.md). |
+| Antivirus blocks it | Common for unsigned builds. Add an exception only if you trust the source, or **build from source**. |
 | “Where’s the window?” | App starts in the tray. **Double-click the tray icon** to open the window. |
+| Verify downloads | Use **SHA256 checksums** and **VirusTotal** links on the release page (goal: 0 detections). See [REPRODUCIBLE-BUILDS.md](REPRODUCIBLE-BUILDS.md). |
 | Logs | `%APPDATA%\.cyber-defense\logs\` (Windows). |
-
----
 
 ## 📋 Requirements
 

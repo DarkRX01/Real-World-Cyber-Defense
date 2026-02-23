@@ -1,0 +1,177 @@
+name: Build & Sign Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-signed-exe:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Extract version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF -replace 'refs/tags/v', ''
+          echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "Version: $version"
+
+      - name: Build reproducible EXE
+        run: |
+          echo "Building reproducible executable (v${{ env.VERSION }})..."
+          python build-safe-exe.py
+
+      - name: Verify build output
+        shell: pwsh
+        run: |
+          $exePath = "dist/CyberDefense/CyberDefense.exe"
+          if (!(Test-Path -Path $exePath)) {
+            throw "Build failed: $exePath not found"
+          }
+          $size = (Get-Item $exePath).Length / 1MB
+          Write-Host "✅ Executable created: $([System.IO.Path]::GetFileName($exePath)) ($([Math]::Round($size, 2)) MB)"
+
+      - name: Generate checksums
+        shell: pwsh
+        run: |
+          $exePath = "dist/CyberDefense/CyberDefense.exe"
+          $sha256 = (Get-FileHash -Path $exePath -Algorithm SHA256).Hash
+          $sha512 = (Get-FileHash -Path $exePath -Algorithm SHA512).Hash
+          
+          # Save checksums to files
+          "$sha256  CyberDefense.exe" | Out-File -FilePath "dist/CyberDefense.exe.sha256" -Encoding utf8
+          "$sha512  CyberDefense.exe" | Out-File -FilePath "dist/CyberDefense.exe.sha512" -Encoding utf8
+          
+          # Display for logging
+          Write-Host "SHA256: $sha256"
+          Write-Host "SHA512: $sha512"
+
+      - name: Create portable ZIP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $distPath = "dist/CyberDefense"
+          $zipFile = "CyberDefense-${{ env.VERSION }}-Windows.zip"
+          
+          if (Test-Path $zipFile) {
+            Remove-Item $zipFile -Force
+          }
+          
+          Compress-Archive -Path "$distPath/*" -DestinationPath $zipFile
+          Write-Host "✅ Created: $zipFile"
+
+      - name: Create release manifest
+        shell: pwsh
+        run: |
+          python signing/sign-artifacts.py --manifest "dist/CyberDefense/CyberDefense.exe" --output "RELEASE-MANIFEST.json"
+
+      - name: Sign executable (if certificate available)
+        shell: pwsh
+        run: |
+          # Check if code signing certificate is available in secrets
+          if ($env:CODE_SIGNING_CERT -and $env:CODE_SIGNING_PASSWORD) {
+            Write-Host "🔐 Code signing certificate detected. Signing executable..."
+            
+            # Decode base64 certificate and save temporarily
+            $certBytes = [Convert]::FromBase64String($env:CODE_SIGNING_CERT)
+            $certPath = "cert-temp.pfx"
+            [System.IO.File]::WriteAllBytes($certPath, $certBytes)
+            
+            try {
+              # Sign the executable
+              python signing/sign-artifacts.py --exe "dist/CyberDefense/CyberDefense.exe" --cert $certPath --password "$env:CODE_SIGNING_PASSWORD"
+              
+              # Verify signature
+              python signing/sign-artifacts.py --verify "dist/CyberDefense/CyberDefense.exe"
+            }
+            finally {
+              # Clean up certificate file
+              Remove-Item $certPath -Force -ErrorAction SilentlyContinue
+            }
+          } else {
+            Write-Host "⚠️  No code signing certificate configured"
+            Write-Host "   To enable signing, add CODE_SIGNING_CERT and CODE_SIGNING_PASSWORD to repository secrets"
+            Write-Host "   Executable remains unsigned but checksums are available for verification"
+          }
+        env:
+          CODE_SIGNING_CERT: ${{ secrets.CODE_SIGNING_CERT }}
+          CODE_SIGNING_PASSWORD: ${{ secrets.CODE_SIGNING_PASSWORD }}
+
+      - name: Prepare release artifacts
+        shell: pwsh
+        run: |
+          $version = "${{ env.VERSION }}"
+          $distPath = "dist/CyberDefense"
+          
+          # Copy files to release directory
+          New-Item -ItemType Directory -Path "release" -Force | Out-Null
+          Copy-Item "$distPath/CyberDefense.exe" "release/" -Force
+          Copy-Item "$distPath/CyberDefense.exe.sha256" "release/" -Force
+          Copy-Item "$distPath/CyberDefense.exe.sha512" "release/" -Force
+          Copy-Item "RELEASE-MANIFEST.json" "release/" -Force
+          Copy-Item "CyberDefense-$version-Windows.zip" "release/" -Force
+          
+          Write-Host "✅ Release artifacts prepared"
+          Get-ChildItem "release/" | ForEach-Object { Write-Host "  - $($_.Name)" }
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          body: |
+            ## Release v${{ env.VERSION }}
+            
+            ### Build Information
+            - **Build Date**: ${{ github.event.head_commit.timestamp }}
+            - **Commit SHA**: ${{ github.sha }}
+            - **Reproducible Build**: Yes
+            
+            ### Download & Verify
+            
+            **VirusTotal:** [Upload EXE/ZIP to VirusTotal](https://www.virustotal.com/) and add the report link here. Goal: 0 detections.
+            
+            **Verification Instructions:**
+            ```powershell
+            # Compare checksums after downloading
+            certutil -hashfile CyberDefense.exe SHA256
+            # Should match: (see RELEASE-MANIFEST.json or .sha256 file)
+            ```
+            
+            **Signature Verification:**
+            ```powershell
+            # If executable is signed
+            Get-AuthenticodeSignature CyberDefense.exe | Format-List
+            ```
+            
+            ### Files
+            - `CyberDefense.exe` - Main executable
+            - `CyberDefense.exe.sha256` - SHA256 checksum
+            - `CyberDefense.exe.sha512` - SHA512 checksum
+            - `RELEASE-MANIFEST.json` - Complete release metadata
+            - `CyberDefense-*-Windows.zip` - Portable distribution
+
+      - name: Upload to artifact storage
+        uses: actions/upload-artifact@v4
+        with:
+          name: CyberDefense-v${{ env.VERSION }}
+          path: release/*
+          retention-days: 90
