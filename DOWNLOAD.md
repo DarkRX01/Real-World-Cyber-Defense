@@ -8,7 +8,7 @@
 1. Click the link above ⬆️
 2. Click "Download" button
 3. Double-click the downloaded file
-4. **IMPORTANT:** If you see a warning, click "More info" then "Run anyway"
+4. If you see a SmartScreen warning: See [SMARTSCREEN-WARNING.md](SMARTSCREEN-WARNING.md) – we do not recommend bypassing; prefer building from source.
 5. **Done!** ✅ Opens instantly
 
 ### Why the SmartScreen warning?

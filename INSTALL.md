@@ -10,7 +10,7 @@
 ### Option 2: Pre-Built EXE
 1. **Download**: `CyberDefense.exe` from `/dist/` folder
 2. **Double-click it**
-3. If Windows shows warning: Click "More info" → "Run anyway"
+3. If Windows shows warning: See [SMARTSCREEN-WARNING.md](SMARTSCREEN-WARNING.md) – we do not recommend bypassing; prefer building from source.
 4. **Done!** ✅ Opens instantly
 
 ### Option 3: Source Code

@@ -113,8 +113,7 @@ IMPORTANT:
 - The app needs the DLL files that are in this folder
 
 If Windows SmartScreen shows a warning:
-- Click "More info"
-- Click "Run anyway"
+- We do NOT recommend bypassing SmartScreen. Safer: Build from source (see GitHub) or use a signed build.
 
 If your antivirus blocks it:
 - This can be a false positive for unsigned apps

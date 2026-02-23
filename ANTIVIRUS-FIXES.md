@@ -28,7 +28,7 @@ test-exe.bat
 - **Proper version information** - Adds legitimate metadata
 - **Security documentation** - Clear purpose and usage
 - **No suspicious imports** - Avoids triggering heuristics
-- **UPX compression** - Smaller, cleaner executable
+- **No UPX compression** - Avoids heuristic triggers; reproducible build
 
 ## 🚀 User Solutions
 
@@ -70,8 +70,13 @@ python build-safe-exe.py
 You can verify the executable is safe:
 
 1. Upload `CyberDefense.exe` to [VirusTotal](https://www.virustotal.com)
-2. Check the detection ratio (should be low)
+2. Check the detection ratio (should be low – ideally 0, or only heuristic flags)
 3. Review the analysis results
+
+**If a few engines flag it (e.g. Elastic, Jiangmin, Zillya):** These are **false positives**. PyInstaller-packed Python apps often trigger generic heuristics like "Trojan.PSW.Python" or "Trojan.Agent.Script" – they mean "suspicious packed/script-based executable," not actual malware. We report these to vendors. You can too:
+- **Elastic:** [Security contact](https://www.elastic.co/community/security)
+- **Jiangmin / Zillya:** Use their vendor false-positive submission forms
+- Include: VirusTotal link, short note ("Legitimate open-source security app, PyInstaller-packed, source: GitHub")
 
 ### Source Code Review
 

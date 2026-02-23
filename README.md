@@ -77,6 +77,9 @@
 | [ROADMAP.md](ROADMAP.md) | Prioritized roadmap: trust & safety, features, usability, community. |
 | [THREAT-MODEL.md](THREAT-MODEL.md) | What we can and cannot detect; confidence levels. |
 | [LIMITATIONS.md](LIMITATIONS.md) | Short summary of limitations; link to full threat model. |
+| [INSTALLER-GUIDE.md](INSTALLER-GUIDE.md) | Installation options: portable ZIP, from source. |
+| [ANTIVIRUS-FIXES.md](ANTIVIRUS-FIXES.md) | False positives, VirusTotal, vendor reporting. |
+| [LAUNCH-CHECKLIST.md](LAUNCH-CHECKLIST.md) | Pre-release and launch checklist. |
 
 ---
 

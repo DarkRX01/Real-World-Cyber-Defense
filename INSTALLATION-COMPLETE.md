@@ -5,7 +5,7 @@
 **Fixed Issues:**
 - ✅ Unicode encoding errors (removed emoji characters)
 - ✅ NoneType attribute errors (removed bad encoding wrapper)
-- ✅ SmartScreen warning (documented with bypass instructions)
+- ✅ SmartScreen warning (documented; we do not recommend bypassing – see SMARTSCREEN-WARNING.md)
 - ✅ Complex setup process (added simple setup.bat)
 
 ---

@@ -117,7 +117,7 @@ The Rust minifilter (`minifilter-rust/`) must be:
 | Limitations        | [LIMITATIONS.md](LIMITATIONS.md) (to consolidate) |
 | Signing            | [SIGNING-SELF-DEFENSE.md](SIGNING-SELF-DEFENSE.md), [REPRODUCIBLE-BUILDS.md](REPRODUCIBLE-BUILDS.md) |
 | SmartScreen        | [SMARTSCREEN-WARNING.md](SMARTSCREEN-WARNING.md) |
-| Minifilter         | [minifilter-rust/README.md](minifilter-rust/README.md), DRIVER-SPEC.md (to add) |
+| Minifilter         | [minifilter-rust/README.md](minifilter-rust/README.md), [minifilter-rust/DRIVER-SPEC.md](minifilter-rust/DRIVER-SPEC.md) |
 | Detection          | [DETECTION-EFFECTIVENESS.md](DETECTION-EFFECTIVENESS.md), [CORE-DETECTION-OVERHAUL.md](CORE-DETECTION-OVERHAUL.md) |
 | Build & release    | [RELEASE-GUIDE.md](RELEASE-GUIDE.md), [build/README.md](build/README.md) |
 

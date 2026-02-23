@@ -43,7 +43,7 @@ Save after changing.
 ## If something goes wrong
 
 - **App doesn’t start** – Extract the full ZIP and run from that folder. Don’t run only the EXE from another location.
-- **SmartScreen warning** – Choose “More info” → “Run anyway”.
+- **SmartScreen warning** – We do not recommend bypassing. Prefer building from source or use a signed build. See [SMARTSCREEN-WARNING.md](SMARTSCREEN-WARNING.md).
 - **Antivirus blocks it** – Add an exception for the app folder or build from source (see README).
 - **Logs** – Windows: `%APPDATA%\.cyber-defense\logs\`  
 - More: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) and [GETTING_STARTED_DESKTOP.md](GETTING_STARTED_DESKTOP.md).
