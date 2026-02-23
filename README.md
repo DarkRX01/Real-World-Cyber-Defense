@@ -154,3 +154,4 @@ MIT License – see [LICENSE](LICENSE).
 
 **Made for easier, more transparent security on your PC.**  
 If this project helps you, consider giving it a ⭐ on GitHub.
+# Fresh start cache purge - Mon Feb 23 04:19:08 WEST 2026
